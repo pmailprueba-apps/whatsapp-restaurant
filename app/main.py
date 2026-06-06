@@ -8,12 +8,14 @@ from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.dashboard import router as dashboard_router
 from app.models import init_db, init_engine
+from app.privacy import router as privacy_router
 from app.webhook import router as webhook_router
 
 app = FastAPI(title="WhatsApp Restaurant Bot")
 
 app.include_router(webhook_router)
 app.include_router(dashboard_router)
+app.include_router(privacy_router)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.globals["now"] = datetime.now
