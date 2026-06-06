@@ -22,7 +22,10 @@ async def send_text(to: str, text: str) -> dict:
                 "text": {"body": text, "preview_url": False},
             },
         )
-        return resp.json()
+        data = resp.json()
+        if resp.status_code != 200 or "error" in data:
+            print(f"ERROR enviando texto a {to} [Status {resp.status_code}]: {data}")
+        return data
 
 
 async def send_buttons(to: str, header: str, body: str, buttons: list[dict]) -> dict:
@@ -45,7 +48,10 @@ async def send_buttons(to: str, header: str, body: str, buttons: list[dict]) -> 
                 },
             },
         )
-        return resp.json()
+        data = resp.json()
+        if resp.status_code != 200 or "error" in data:
+            print(f"ERROR enviando botones a {to} [Status {resp.status_code}]: {data}")
+        return data
 
 
 async def send_list(
@@ -73,4 +79,7 @@ async def send_list(
                 },
             },
         )
-        return resp.json()
+        data = resp.json()
+        if resp.status_code != 200 or "error" in data:
+            print(f"ERROR enviando lista a {to} [Status {resp.status_code}]: {data}")
+        return data
