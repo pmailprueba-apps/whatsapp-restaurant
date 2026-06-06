@@ -36,3 +36,27 @@ async def index(request: Request):
             "all_orders": [],
         },
     )
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy():
+    return """<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad - Restaurante Viky</title>
+<style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#333;line-height:1.6}h1{color:#128C7E}</style></head>
+<body>
+<h1>Política de Privacidad</h1>
+<p><strong>Restaurante Viky</strong></p>
+<p>Esta aplicación recolecta únicamente la información necesaria para procesar pedidos:</p>
+<ul><li>Número de teléfono</li><li>Nombre del cliente</li><li>Detalles del pedido</li></ul>
+<p>Los datos se usan exclusivamente para la gestión de pedidos y no se comparten con terceros.</p>
+<p>Para solicitar la eliminación de tus datos, contáctanos al WhatsApp del negocio.</p>
+<p><em>Última actualización: Junio 2026</em></p>
+</body>
+</html>"""
+
+
+@app.get("/privacy-policy", response_class=HTMLResponse)
+async def privacy_policy():
+    return await privacy()
