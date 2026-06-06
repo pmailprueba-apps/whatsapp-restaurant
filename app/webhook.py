@@ -4,9 +4,12 @@ from fastapi.responses import PlainTextResponse
 from app.bot import BotState, build_order_data, get_session, handle_message, reset_session
 from app.config import settings
 from app.database import confirm_order, create_order, get_or_create_customer
-from app.whatsapp import send_text
+from app.whatsapp import send_text, send_buttons
 
 router = APIRouter()
+
+webhook_requests = 0
+
 
 
 @router.get("/webhook/whatsapp")
@@ -20,8 +23,15 @@ async def verify_webhook(request: Request):
     return PlainTextResponse("Verification failed", status_code=403)
 
 
+@router.get("/webhook-status")
+async def webhook_status():
+    return {"requests_received": webhook_requests}
+
+
 @router.post("/webhook/whatsapp")
 async def receive_message(request: Request):
+    global webhook_requests
+    webhook_requests += 1
     try:
         body = await request.json()
     except Exception:
