@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import PlainTextResponse
 
 from app.bot import BotState, build_order_data, get_session, handle_message, reset_session
 from app.config import settings
@@ -8,14 +9,14 @@ from app.whatsapp import send_text
 router = APIRouter()
 
 
-@router.get("/webhook/whatsapp")
+@router.get("/webhook/whatsapp", response_class=PlainTextResponse)
 async def verify_webhook(request: Request):
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
 
     if mode == "subscribe" and token == settings.whatsapp_verify_token:
-        return int(challenge)
+        return challenge
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
