@@ -2,13 +2,15 @@ import httpx
 
 from app.config import settings
 
-API_BASE = f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}"
+
+def api_base() -> str:
+    return f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}"
 
 
 async def send_text(to: str, text: str) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{API_BASE}/messages",
+            f"{api_base()}/messages",
             headers={
                 "Authorization": f"Bearer {settings.whatsapp_token}",
                 "Content-Type": "application/json",
@@ -26,7 +28,7 @@ async def send_text(to: str, text: str) -> dict:
 async def send_buttons(to: str, header: str, body: str, buttons: list[dict]) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{API_BASE}/messages",
+            f"{api_base()}/messages",
             headers={
                 "Authorization": f"Bearer {settings.whatsapp_token}",
                 "Content-Type": "application/json",
@@ -51,7 +53,7 @@ async def send_list(
 ) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{API_BASE}/messages",
+            f"{api_base()}/messages",
             headers={
                 "Authorization": f"Bearer {settings.whatsapp_token}",
                 "Content-Type": "application/json",
