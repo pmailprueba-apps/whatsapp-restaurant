@@ -104,15 +104,15 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
 
 
 async def _show_main_menu(phone: str) -> tuple[str, str | None]:
-    body = (
-        "¡Bienvenido! 🎉\n\n"
-        "Soy el bot de pedidos. Elige una opción:"
+    menu = (
+        "🍽️ *Tacos y Hamburguesas El Compa*\n\n"
+        "¡Bienvenido! 🎉 Elige una opción:\n\n"
+        "1️⃣ *Ver Menú*\n"
+        "2️⃣ *Hacer Pedido*\n"
+        "3️⃣ *Información*\n\n"
+        "Responde el *número* de tu opción:"
     )
-    await send_buttons(phone, "🍽️ " + "Tacos y Hamburguesas El Compa", body, [
-        {"type": "reply", "reply": {"id": "ver_menu", "title": "📋 Ver Menú"}},
-        {"type": "reply", "reply": {"id": "hacer_pedido", "title": "🛒 Hacer Pedido"}},
-        {"type": "reply", "reply": {"id": "informacion", "title": "📍 Información"}},
-    ])
+    await send_text(phone, menu)
     return BotState.MAIN_MENU, None
 
 
@@ -121,10 +121,7 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
         menu_text = format_menu_text()
         menu_text += "\n\n¿Quieres hacer un pedido?"
         await send_text(phone, menu_text)
-        await send_buttons(phone, "🤔 ¿Qué hacemos?", "", [
-            {"type": "reply", "reply": {"id": "hacer_pedido", "title": "✅ Sí, ahora"}},
-            {"type": "reply", "reply": {"id": "volver", "title": "🔙 Volver al menú"}},
-        ])
+        await send_text(phone, "¿Quieres hacer un pedido? Responde:\n1️⃣ Sí\n2️⃣ Volver al menú")
         return BotState.MAIN_MENU, None
 
     if text in ["hacer_pedido", "hacer pedido", "pedido", "orden", "2"]:
@@ -136,13 +133,10 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
             "🕐 *Horario:* Lunes a Domingo 11:00 AM - 11:00 PM\n"
             "📱 *Teléfono:* [Tu número]\n"
             "💵 *Forma de pago:* Efectivo en local\n\n"
-            "¿En qué más puedo ayudarte?"
+            "¿En qué más puedo ayudarte?\n\n"
+            "1️⃣ Hacer Pedido\n2️⃣ Menú Principal"
         )
         await send_text(phone, info)
-        await send_buttons(phone, "🔙 Volver", "¿Qué deseas hacer?", [
-            {"type": "reply", "reply": {"id": "hacer_pedido", "title": "🛒 Hacer Pedido"}},
-            {"type": "reply", "reply": {"id": "volver", "title": "🔙 Menú Principal"}},
-        ])
         return BotState.MAIN_MENU, None
 
     if text in ["volver", "main", "menu principal", "atras"]:

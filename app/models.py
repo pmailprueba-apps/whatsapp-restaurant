@@ -68,4 +68,7 @@ def init_engine(database_url: str):
 def init_db():
     if engine is None:
         raise RuntimeError("init_engine() must be called before init_db()")
-    Base.metadata.create_all(engine)
+    try:
+        Base.metadata.create_all(engine, checkfirst=True)
+    except Exception:
+        pass
