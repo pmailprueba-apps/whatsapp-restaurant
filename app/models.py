@@ -57,10 +57,11 @@ SessionLocal = None
 
 def init_engine(database_url: str):
     global engine, SessionLocal
-    if database_url.startswith("sqlite"):
-        path = database_url.replace("sqlite:///", "")
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(database_url, echo=False)
+    if database_url and database_url.startswith("sqlite"):
+        path = database_url.replace("sqlite:///", "").strip()
+        if path:
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+    engine = create_engine(database_url or "sqlite:///data/restaurant.db", echo=False)
     SessionLocal = sessionmaker(bind=engine)
 
 
