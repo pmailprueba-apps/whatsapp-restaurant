@@ -9,15 +9,15 @@ from app.whatsapp import send_text
 router = APIRouter()
 
 
-@router.get("/webhook/whatsapp", response_class=PlainTextResponse)
+@router.get("/webhook/whatsapp")
 async def verify_webhook(request: Request):
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
 
     if mode == "subscribe" and token == settings.whatsapp_verify_token:
-        return challenge
-    raise HTTPException(status_code=403, detail="Verification failed")
+        return PlainTextResponse(challenge)
+    return PlainTextResponse("Verification failed", status_code=403)
 
 
 @router.post("/webhook/whatsapp")
