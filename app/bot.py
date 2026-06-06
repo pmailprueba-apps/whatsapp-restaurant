@@ -104,16 +104,15 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
 
 
 async def _show_main_menu(phone: str) -> tuple[str, str | None]:
-    text = (
-        "🍽️ *Tacos y Hamburguesas El Compa*\n\n"
+    body = (
         "¡Bienvenido! 🎉\n\n"
-        "Elige una opción:\n\n"
-        "1️⃣ *Ver Menú*\n"
-        "2️⃣ *Hacer Pedido*\n"
-        "3️⃣ *Información*\n\n"
-        "Responde el *número* de tu opción:"
+        "Soy el bot de pedidos. Elige una opción:"
     )
-    await send_text(phone, text)
+    await send_buttons(phone, "🍽️ " + "Tacos y Hamburguesas El Compa", body, [
+        {"type": "reply", "reply": {"id": "ver_menu", "title": "📋 Ver Menú"}},
+        {"type": "reply", "reply": {"id": "hacer_pedido", "title": "🛒 Hacer Pedido"}},
+        {"type": "reply", "reply": {"id": "informacion", "title": "📍 Información"}},
+    ])
     return BotState.MAIN_MENU, None
 
 
