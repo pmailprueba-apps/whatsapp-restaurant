@@ -50,7 +50,8 @@ HTML_CONTENT = r"""
 </div>
 
 <script>
-    const ws = new WebSocket(`ws://${window.location.host}/ws/chat`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/chat`);
     const messagesDiv = document.getElementById("messages");
 
     ws.onmessage = function(event) {
