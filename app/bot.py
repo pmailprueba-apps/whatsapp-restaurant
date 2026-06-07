@@ -15,6 +15,7 @@ from app.whatsapp import send_buttons, send_list, send_text
 class BotState:
     INIT = "INIT"
     MAIN_MENU = "MAIN_MENU"
+    VIEWING_MENU = "VIEWING_MENU"
     BROWSING_CATEGORY = "BROWSING_CATEGORY"
     SELECTING_PRODUCT = "SELECTING_PRODUCT"
     SELECTING_QUANTITY = "SELECTING_QUANTITY"
@@ -79,6 +80,9 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
     if session.state == BotState.MAIN_MENU:
         return auto(*(await _handle_main_menu(phone, text, session)))
 
+    if session.state == BotState.VIEWING_MENU:
+        return auto(*(await _handle_viewing_menu(phone, text, session)))
+
     if session.state == BotState.BROWSING_CATEGORY:
         return auto(*(await _handle_category_selection(phone, text, session)))
 
@@ -122,7 +126,7 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
         menu_text += "\n\n¿Quieres hacer un pedido?"
         await send_text(phone, menu_text)
         await send_text(phone, "¿Quieres hacer un pedido? Responde:\n1️⃣ Sí\n2️⃣ Volver al menú")
-        return BotState.MAIN_MENU, None
+        return BotState.VIEWING_MENU, None
 
     if text in ["hacer_pedido", "hacer pedido", "pedido", "orden", "2"]:
         return await _show_category_list(phone)
@@ -143,6 +147,17 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
         return await _show_main_menu(phone)
 
     return await _show_main_menu(phone)
+
+
+async def _handle_viewing_menu(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["1", "si", "sí", "hacer_pedido", "hacer pedido", "pedido", "orden"]:
+        return await _show_category_list(phone)
+
+    if text in ["2", "no", "volver", "menu principal", "menu", "menú"]:
+        return await _show_main_menu(phone)
+
+    await send_text(phone, "Responde:\n1️⃣ Sí, quiero pedir\n2️⃣ Volver al menú")
+    return BotState.VIEWING_MENU, None
 
 
 async def _show_category_list(phone: str) -> tuple[str, str | None]:
