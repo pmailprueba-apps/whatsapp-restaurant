@@ -4,6 +4,7 @@ import httpx
 
 from app.config import settings
 
+active_websockets = []
 
 class BaseProvider(ABC):
 
@@ -19,6 +20,14 @@ class BaseProvider(ABC):
 
     @abstractmethod
     async def send_order_cancellation(self, to: str, order_id: int) -> dict:
+        ...
+
+    @abstractmethod
+    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
+        ...
+
+    @abstractmethod
+    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
         ...
 
 
@@ -118,6 +127,57 @@ class ManyChatProvider(BaseProvider):
         )
         return await self._meta_send(to, body)
 
+    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "header": {"type": "text", "text": header},
+                "body": {"text": body},
+                "action": {"buttons": buttons},
+            },
+        }
+        base = f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{base}/messages",
+                headers={
+                    "Authorization": f"Bearer {settings.whatsapp_token}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            return resp.json()
+
+    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "list",
+                "header": {"type": "text", "text": header},
+                "body": {"text": body},
+                "action": {
+                    "button": button_text,
+                    "sections": sections,
+                },
+            },
+        }
+        base = f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{base}/messages",
+                headers={
+                    "Authorization": f"Bearer {settings.whatsapp_token}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            return resp.json()
+
 
 class DirectProvider(BaseProvider):
     async def _graph_post(self, payload: dict) -> dict:
@@ -174,15 +234,75 @@ class DirectProvider(BaseProvider):
             "text": {"body": body, "preview_url": False},
         })
 
+    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
+        return await self._graph_post({
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "header": {"type": "text", "text": header},
+                "body": {"text": body},
+                "action": {"buttons": buttons},
+            },
+        })
 
-_provider_instance: BaseProvider | None = None
+    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
+        return await self._graph_post({
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "list",
+                "header": {"type": "text", "text": header},
+                "body": {"text": body},
+                "action": {
+                    "button": button_text,
+                    "sections": sections,
+                },
+            },
+        })
 
+
+class SimulatorProvider(BaseProvider):
+    async def _send_ws(self, payload: dict):
+        for ws in active_websockets:
+            try:
+                await ws.send_json(payload)
+            except Exception:
+                pass
+
+    async def send_text(self, to: str, text: str) -> dict:
+        await self._send_ws({"type": "text", "text": text})
+        return {"status": "ok"}
+
+    async def send_order_confirmation(self, to: str, order_id: int, items_text: str, total: float, pickup_time: str) -> dict:
+        text = f"✅ *PEDIDO #{order_id} CONFIRMADO*\\n\\nResumen:\\n{items_text}\\nTotal: ${total}\\n\\nTiempo estimado de recolección: {pickup_time}"
+        await self._send_ws({"type": "text", "text": text})
+        return {"status": "ok"}
+
+    async def send_order_cancellation(self, to: str, order_id: int) -> dict:
+        text = f"❌ *PEDIDO #{order_id} CANCELADO*\\n\\nTu pedido ha sido cancelado exitosamente. Si fue un error, puedes volver a intentarlo enviando 'Menu'."
+        await self._send_ws({"type": "text", "text": text})
+        return {"status": "ok"}
+
+    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
+        await self._send_ws({"type": "buttons", "header": header, "body": body, "buttons": buttons})
+        return {"status": "ok"}
+
+    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
+        await self._send_ws({"type": "list", "header": header, "body": body, "button_text": button_text, "sections": sections})
+        return {"status": "ok"}
+
+_provider_instance = None
 
 def get_provider() -> BaseProvider:
     global _provider_instance
     if _provider_instance is None:
         if settings.whatsapp_provider == "manychat":
             _provider_instance = ManyChatProvider(settings.manychat_api_key)
+        elif settings.whatsapp_provider == "simulator":
+            _provider_instance = SimulatorProvider()
         else:
             _provider_instance = DirectProvider()
     return _provider_instance

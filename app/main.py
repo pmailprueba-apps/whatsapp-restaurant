@@ -10,10 +10,12 @@ from app.config import settings
 from app.dashboard import router as dashboard_router
 from app.models import init_db, init_engine
 from app.webhook import router as webhook_router
+from app.simulator import router as simulator_router
 
 app = FastAPI(title="WhatsApp Restaurant Bot")
 
 app.include_router(webhook_router)
+app.include_router(simulator_router)
 app.include_router(dashboard_router)
 app.include_router(api_menu_router)
 
