@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     owner_phone: str = ""
     app_name: str = "Tacos y Hamburguesas El Compa"
 
+    def model_post_init(self, __context):
+        self.whatsapp_token = self.whatsapp_token.strip()
+        self.owner_phone = self.owner_phone.strip()
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
