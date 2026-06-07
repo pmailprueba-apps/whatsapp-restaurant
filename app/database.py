@@ -6,12 +6,12 @@ from sqlalchemy.orm import joinedload
 from app import models
 
 
-def _db():
+def _get_db():
     return models.SessionLocal()
 
 
 def get_or_create_customer(phone: str, name: str = "") -> models.Customer:
-    db = _db()
+    db = _get_db()
     try:
         customer = db.query(models.Customer).filter(models.Customer.phone == phone).first()
         if not customer:
@@ -31,7 +31,7 @@ def get_or_create_customer(phone: str, name: str = "") -> models.Customer:
 def create_order(
     customer_id: int, items: list[dict], total: float, notes: str = ""
 ) -> models.Order:
-    db = _db()
+    db = _get_db()
     try:
         order = models.Order(
             customer_id=customer_id,
@@ -62,7 +62,7 @@ def create_order(
 
 
 def get_pending_orders():
-    db = _db()
+    db = _get_db()
     try:
         return (
             db.query(models.Order)
@@ -76,7 +76,7 @@ def get_pending_orders():
 
 
 def get_confirmed_orders():
-    db = _db()
+    db = _get_db()
     try:
         return (
             db.query(models.Order)
@@ -90,7 +90,7 @@ def get_confirmed_orders():
 
 
 def get_all_orders():
-    db = _db()
+    db = _get_db()
     try:
         return (
             db.query(models.Order)
@@ -103,7 +103,7 @@ def get_all_orders():
 
 
 def get_order_by_id(order_id: int) -> models.Order | None:
-    db = _db()
+    db = _get_db()
     try:
         return (
             db.query(models.Order)
@@ -116,7 +116,7 @@ def get_order_by_id(order_id: int) -> models.Order | None:
 
 
 def confirm_order(order_id: int, pickup_time: str) -> models.Order | None:
-    db = _db()
+    db = _get_db()
     try:
         order = (
             db.query(models.Order)
@@ -136,7 +136,7 @@ def confirm_order(order_id: int, pickup_time: str) -> models.Order | None:
 
 
 def cancel_order(order_id: int) -> models.Order | None:
-    db = _db()
+    db = _get_db()
     try:
         order = (
             db.query(models.Order)

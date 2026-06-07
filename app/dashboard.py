@@ -11,7 +11,7 @@ from app.database import (
     get_order_by_id,
     get_pending_orders,
 )
-from app.whatsapp import send_text
+from app.whatsapp import send_order_cancellation, send_order_confirmation
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -41,14 +41,13 @@ async def confirm_order_route(order_id: int, pickup_time: str = Form(...)):
             f"• {i.quantity}x {i.product_name} = ${i.subtotal:.0f}"
             for i in order.items
         )
-        msg = (
-            f"✅ *PEDIDO # {order.id} CONFIRMADO*\n\n"
-            f"{items_text}\n\n"
-            f"*Total: ${order.total:.0f}*\n\n"
-            f"🕐 *Recoge a las: {pickup_time}*\n\n"
-            f"📍 Pasa al local y paga en efectivo. ¡Te esperamos! 🎉"
+        await send_order_confirmation(
+            to=order.customer.phone,
+            order_id=order.id,
+            items_text=items_text,
+            total=order.total,
+            pickup_time=pickup_time,
         )
-        await send_text(order.customer.phone, msg)
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
@@ -56,10 +55,8 @@ async def confirm_order_route(order_id: int, pickup_time: str = Form(...)):
 async def cancel_order_route(order_id: int):
     order = cancel_order(order_id)
     if order and order.customer:
-        await send_text(
-            order.customer.phone,
-            f"❌ *PEDIDO # {order.id} CANCELADO*\n\n"
-            "Lo sentimos, tu pedido ha sido cancelado. "
-            "Puedes hacer un nuevo pedido cuando quieras.",
+        await send_order_cancellation(
+            to=order.customer.phone,
+            order_id=order.id,
         )
     return RedirectResponse(url="/dashboard", status_code=303)

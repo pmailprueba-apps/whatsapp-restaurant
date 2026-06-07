@@ -14,6 +14,7 @@ class Customer(Base):
 
     id = Column(Integer, primary_key=True)
     phone = Column(String(20), unique=True, nullable=False, index=True)
+    manychat_id = Column(String(50), nullable=True, index=True)
     name = Column(String(100), default="")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
