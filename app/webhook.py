@@ -72,6 +72,18 @@ async def _handle_meta_webhook(body: dict, request: Request) -> dict:
                 if not text:
                     continue
 
+                # Reenviar mensaje al dueño para que vea todo
+                if settings.owner_phone and phone != settings.owner_phone:
+                    emoji = "📝" if msg_type == "text" else "🔘"
+                    owner_msg = (
+                        f"{emoji} *{profile_name}* ({phone})\n"
+                        f"💬 {text}"
+                    )
+                    try:
+                        await send_text(settings.owner_phone, owner_msg)
+                    except Exception:
+                        pass
+
                 try:
                     state, summary = await handle_message(phone, text)
                 except Exception as e:
