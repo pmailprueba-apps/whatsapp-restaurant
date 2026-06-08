@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.api_menu import router as api_menu_router
@@ -31,15 +31,7 @@ def startup():
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "pending": [],
-            "confirmed": [],
-            "all_orders": [],
-        },
-    )
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 
 @app.get("/privacy")

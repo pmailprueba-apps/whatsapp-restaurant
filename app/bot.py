@@ -16,6 +16,7 @@ class BotState:
     INIT = "INIT"
     MAIN_MENU = "MAIN_MENU"
     VIEWING_MENU = "VIEWING_MENU"
+    VIEWING_INFO = "VIEWING_INFO"
     BROWSING_CATEGORY = "BROWSING_CATEGORY"
     SELECTING_PRODUCT = "SELECTING_PRODUCT"
     SELECTING_QUANTITY = "SELECTING_QUANTITY"
@@ -83,6 +84,9 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
     if session.state == BotState.VIEWING_MENU:
         return auto(*(await _handle_viewing_menu(phone, text, session)))
 
+    if session.state == BotState.VIEWING_INFO:
+        return auto(*(await _handle_viewing_info(phone, text, session)))
+
     if session.state == BotState.BROWSING_CATEGORY:
         return auto(*(await _handle_category_selection(phone, text, session)))
 
@@ -133,15 +137,15 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
 
     if text in ["informacion", "información", "info", "horario", "direccion", "3"]:
         info = (
-            "📍 *Dirección:* [Tu dirección aquí]\n"
+            "📍 *Dirección:* Calle Melchor Ocampo 120, Zona Centro\n"
             "🕐 *Horario:* Lunes a Domingo 11:00 AM - 11:00 PM\n"
-            "📱 *Teléfono:* [Tu número]\n"
+            "📱 *Teléfono:* +52 1 444 650 6790\n"
             "💵 *Forma de pago:* Efectivo en local\n\n"
             "¿En qué más puedo ayudarte?\n\n"
             "1️⃣ Hacer Pedido\n2️⃣ Menú Principal"
         )
         await send_text(phone, info)
-        return BotState.MAIN_MENU, None
+        return BotState.VIEWING_INFO, None
 
     if text in ["volver", "main", "menu principal", "atras"]:
         return await _show_main_menu(phone)
@@ -158,6 +162,17 @@ async def _handle_viewing_menu(phone: str, text: str, session: Session) -> tuple
 
     await send_text(phone, "Responde:\n1️⃣ Sí, quiero pedir\n2️⃣ Volver al menú")
     return BotState.VIEWING_MENU, None
+
+
+async def _handle_viewing_info(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["1", "hacer_pedido", "hacer pedido", "pedido", "orden"]:
+        return await _show_category_list(phone)
+
+    if text in ["2", "volver", "menu principal", "menu", "menú"]:
+        return await _show_main_menu(phone)
+
+    await send_text(phone, "Responde:\n1️⃣ Hacer Pedido\n2️⃣ Menú Principal")
+    return BotState.VIEWING_INFO, None
 
 
 async def _show_category_list(phone: str) -> tuple[str, str | None]:
@@ -186,6 +201,9 @@ async def _show_category_list(phone: str) -> tuple[str, str | None]:
 
 
 async def _handle_category_selection(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["volver", "atras", "atrás", "cancelar", "salir", "menu", "menú"]:
+        return await _show_main_menu(phone)
+
     if text.startswith("cat_"):
         category = text[4:]
         session.current_category = category
@@ -207,6 +225,12 @@ async def _handle_category_selection(phone: str, text: str, session: Session) ->
 
 
 async def _handle_product_selection(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["volver", "atras", "atrás"]:
+        return await _show_category_list(phone)
+    if text in ["cancelar", "salir", "menu", "menú"]:
+        session.cart = []
+        return await _show_main_menu(phone)
+
     products = get_products_by_category(session.current_category)
     if not products:
         await send_text(phone, "Error: categoría no encontrada. Intenta de nuevo.")
@@ -246,6 +270,17 @@ async def _handle_product_selection(phone: str, text: str, session: Session) -> 
 
 
 async def _handle_quantity(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["volver", "atras", "atrás"]:
+        cat_text = format_category_text(session.current_category)
+        if cat_text:
+            await send_text(phone, cat_text)
+            return BotState.SELECTING_PRODUCT, None
+        return await _show_category_list(phone)
+    if text in ["cancelar", "salir", "menu", "menú"]:
+        session.cart = []
+        session.pending_item = None
+        return await _show_main_menu(phone)
+
     try:
         qty = int(text)
         if qty < 1 or qty > 99:
@@ -255,7 +290,6 @@ async def _handle_quantity(phone: str, text: str, session: Session) -> tuple[str
         return BotState.SELECTING_QUANTITY, None
 
     session.pending_item.quantity = qty
-    session.pending_item.subtotal  # property access to ensure it works
 
     emoji = get_category_emoji(session.pending_item.category)
     name = session.pending_item.product_name
@@ -271,6 +305,19 @@ async def _handle_quantity(phone: str, text: str, session: Session) -> tuple[str
 
 
 async def _handle_notes(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["volver", "atras", "atrás"]:
+        from app.menu import find_product
+        product = find_product(session.pending_item.product_name)
+        await send_text(
+            phone,
+            f"{format_product_detail(product)}\n\n¿Cuántas quieres? (responde un número)",
+        )
+        return BotState.SELECTING_QUANTITY, None
+    if text in ["cancelar", "salir", "menu", "menú"]:
+        session.cart = []
+        session.pending_item = None
+        return await _show_main_menu(phone)
+
     item = session.pending_item
     if text.lower() not in ["no", "nada", "ninguna", "ninguno", "sin notas"]:
         item.notes = text

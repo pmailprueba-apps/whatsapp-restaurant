@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -29,6 +30,7 @@ async def dashboard(request: Request):
             "pending": pending,
             "confirmed": confirmed,
             "all_orders": all_orders,
+            "now": datetime.now,
         },
     )
 
