@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.api_menu import router as api_menu_router
+from app.bot import init_sessions
 from app.config import settings
 from app.dashboard import router as dashboard_router
 from app.models import init_db, init_engine
@@ -27,6 +28,7 @@ templates.env.globals["now"] = datetime.now
 def startup():
     init_engine(settings.database_url)
     init_db()
+    init_sessions()
 
 
 @app.get("/", response_class=HTMLResponse)

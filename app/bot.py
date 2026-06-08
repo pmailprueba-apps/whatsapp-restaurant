@@ -9,6 +9,7 @@ from app.menu import (
     get_category_names,
     get_products_by_category,
 )
+from app.session_storage import delete_session, load_session, save_session
 from app.whatsapp import send_buttons, send_list, send_text
 
 
@@ -52,15 +53,26 @@ class Session:
 sessions: dict[str, Session] = {}
 
 
+def init_sessions():
+    global sessions
+    from app.session_storage import load_all_sessions
+    sessions = load_all_sessions()
+
+
 def get_session(phone: str) -> Session:
     if phone not in sessions:
-        sessions[phone] = Session(phone=phone)
+        db_session = load_session(phone)
+        if db_session:
+            sessions[phone] = db_session
+        else:
+            sessions[phone] = Session(phone=phone)
     return sessions[phone]
 
 
 def reset_session(phone: str):
     if phone in sessions:
         del sessions[phone]
+    delete_session(phone)
 
 
 async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
@@ -69,6 +81,7 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
     
     def auto(new_state, summary):
         session.state = new_state
+        save_session(session)
         return new_state, summary
     
     if text in ["/start", "hola", "buenas", "menu", "menú"]:
@@ -349,11 +362,13 @@ async def _handle_confirmation(phone: str, text: str, session: Session) -> tuple
         summary += "\n\n✅ Pedido enviado. Espera la confirmación del local con la hora de recogida."
 
         session.state = BotState.ORDER_PLACED
+        save_session(session)
         return BotState.ORDER_PLACED, summary
 
     if text in ["cancelar_pedido", "cancelar", "cancel"]:
         session.cart = []
         session.state = BotState.MAIN_MENU
+        save_session(session)
         await send_text(phone, "❌ Pedido cancelado. ¿Necesitas algo más?")
         await send_buttons(phone, "🔙 Volver", "", [
             {"type": "reply", "reply": {"id": "hacer_pedido", "title": "🛒 Nuevo Pedido"}},
@@ -373,6 +388,7 @@ async def _handle_post_order(phone: str, text: str, session: Session) -> tuple[s
     if text in ["nuevo_pedido", "nuevo pedido", "otro pedido"]:
         session.cart = []
         session.state = BotState.MAIN_MENU
+        save_session(session)
         return await _show_category_list(phone)
 
     await send_text(

@@ -52,6 +52,17 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
 
 
+class BotSession(Base):
+    __tablename__ = "bot_sessions"
+
+    phone = Column(String(20), primary_key=True)
+    state = Column(String(30), default="INIT")
+    current_category = Column(String(50), default="")
+    cart_data = Column(Text, default="[]")
+    pending_item_data = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 engine = None
 SessionLocal = None
 
