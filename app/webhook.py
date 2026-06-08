@@ -60,23 +60,27 @@ async def _handle_meta_webhook(body: dict, request: Request) -> dict:
                 )
 
                 text = ""
+                display_text = ""
                 if msg_type == "text":
                     text = msg["text"].get("body", "")
+                    display_text = text
                 elif msg_type == "interactive":
                     interactive = msg.get("interactive", {})
                     if interactive.get("type") == "button_reply":
                         text = interactive["button_reply"].get("id", "")
+                        display_text = interactive["button_reply"].get("title", text)
                     elif interactive.get("type") == "list_reply":
                         text = interactive["list_reply"].get("id", "")
+                        display_text = interactive["list_reply"].get("title", text)
 
                 if not text:
                     continue
 
                 # Guardar mensaje en DB para el inbox del dashboard
                 try:
-                    save_message(phone, profile_name, text, msg_type)
-                except Exception:
-                    pass
+                    save_message(phone, profile_name, display_text or text, msg_type)
+                except Exception as e:
+                    print(f"Error saving message: {e}")
 
                 try:
                     state, summary = await handle_message(phone, text)

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard - Pedidos WhatsApp</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -10,43 +10,44 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
             color: #333;
-            padding: 20px;
+            padding: 12px;
         }
         .header {
             background: linear-gradient(135deg, #25D366, #128C7E);
             color: white;
-            padding: 20px 30px;
+            padding: 16px 20px;
             border-radius: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .header h1 { font-size: 24px; }
-        .header span { opacity: 0.9; font-size: 14px; }
-        .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+        .header h1 { font-size: 18px; }
+        .header span { opacity: 0.9; font-size: 12px; }
+        .stats { display: flex; gap: 10px; margin-bottom: 16px; }
         .stat-card {
             background: white;
-            padding: 16px 24px;
+            padding: 12px 16px;
             border-radius: 10px;
             flex: 1;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .stat-card .number { font-size: 28px; font-weight: bold; color: #128C7E; }
-        .stat-card .label { font-size: 13px; color: #666; margin-top: 4px; }
-        .section { margin-bottom: 32px; }
+        .stat-card .number { font-size: 24px; font-weight: bold; color: #128C7E; }
+        .stat-card .label { font-size: 11px; color: #666; margin-top: 2px; }
+        .section { margin-bottom: 24px; }
         .section h2 {
-            font-size: 18px;
-            margin-bottom: 12px;
+            font-size: 16px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         .order-card {
             background: white;
             border-radius: 10px;
-            padding: 16px 20px;
-            margin-bottom: 12px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             border-left: 4px solid #FFC107;
         }
@@ -56,30 +57,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-        .order-id { font-weight: bold; font-size: 16px; }
-        .order-meta { font-size: 13px; color: #666; }
-        .order-items { margin: 8px 0; }
+        .order-id { font-weight: bold; font-size: 15px; }
+        .order-meta { font-size: 12px; color: #666; }
+        .order-items { margin: 6px 0; }
         .order-items li {
             list-style: none;
-            padding: 4px 0;
-            font-size: 14px;
+            padding: 3px 0;
+            font-size: 13px;
             display: flex;
             justify-content: space-between;
         }
-        .order-total { font-weight: bold; font-size: 16px; margin-top: 8px; }
-        .order-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .order-total { font-weight: bold; font-size: 15px; margin-top: 6px; }
+        .order-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
         .btn {
-            padding: 8px 16px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
-            transition: all 0.2s;
         }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:active { opacity: 0.8; }
         .btn-confirm { background: #25D366; color: white; }
         .btn-cancel { background: #f44336; color: white; }
         .btn-secondary { background: #e0e0e0; color: #333; }
@@ -90,35 +90,61 @@
             flex-wrap: wrap;
         }
         .pickup-form input {
-            padding: 8px 12px;
+            padding: 10px 12px;
             border: 1px solid #ddd;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
-            width: 140px;
+            width: 120px;
         }
         .badge {
             display: inline-block;
-            padding: 3px 10px;
+            padding: 3px 8px;
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
         }
         .badge-pending { background: #FFF3CD; color: #856404; }
         .badge-confirmed { background: #D4EDDA; color: #155724; }
         .badge-cancelled { background: #F8D7DA; color: #721C24; }
         .badge-ready { background: #CCE5FF; color: #004085; }
-        .customer-info { font-size: 13px; color: #555; margin: 4px 0; }
-        .empty-state { text-align: center; padding: 40px; color: #999; }
-        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .customer-info { font-size: 12px; color: #555; margin: 4px 0; }
+        .empty-state { text-align: center; padding: 30px; color: #999; }
+        .empty-state .icon { font-size: 40px; margin-bottom: 8px; }
         .refresh-bar {
-            text-align: right;
-            margin-bottom: 16px;
-            font-size: 13px;
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 12px;
             color: #999;
         }
-        @media (max-width: 600px) {
-            .header { flex-direction: column; text-align: center; gap: 8px; }
-            .stats { flex-direction: column; }
+        .msg-card {
+            background: white;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            border-left: 3px solid #128C7E;
+        }
+        .msg-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+        .msg-text {
+            margin-top: 4px;
+            font-size: 14px;
+        }
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .header { flex-direction: column; text-align: center; gap: 6px; padding: 12px 16px; }
+            .header h1 { font-size: 16px; }
+            .stats { gap: 6px; }
+            .stat-card { padding: 10px; }
+            .stat-card .number { font-size: 20px; }
+            .order-card { padding: 12px; }
+            .order-actions { flex-direction: column; }
+            .pickup-form input { width: 100%; }
+            .pickup-form button { width: 100%; }
         }
     </style>
 </head>
@@ -126,11 +152,11 @@
     <div class="header">
         <div>
             <h1>🍽️ Panel de Pedidos</h1>
-            <span>Pedidos por WhatsApp</span>
+            <span>Restaurante Viky</span>
         </div>
         <div>
             <a href="/dashboard" class="btn btn-secondary"
-               style="text-decoration:none; background: rgba(255,255,255,0.2); color: white;">
+               style="text-decoration:none; background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px;">
                 🔄 Actualizar
             </a>
         </div>
@@ -147,7 +173,26 @@
         </div>
         <div class="stat-card">
             <div class="number">{{ all_orders|length }}</div>
-            <div class="label">📋 Total pedidos</div>
+            <div class="label">📋 Total</div>
+        </div>
+    </div>
+
+    <div class="section" id="messages-section">
+        <h2>💬 Mensajes</h2>
+        <div style="max-height: 300px; overflow-y: auto;">
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="msg-card">
+                <div class="msg-header">
+                    <span>👤 {{ msg.name or 'Cliente' }} · {{ msg.phone[-4:] }}</span>
+                    <span>{{ msg.created_at.strftime('%d/%m %H:%M') }}</span>
+                </div>
+                <div class="msg-text">{{ msg.text }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state"><p>No hay mensajes aún</p></div>
+        {% endif %}
         </div>
     </div>
 
@@ -155,7 +200,7 @@
         <h2>🕐 Pedidos Pendientes</h2>
         {% if pending %}
             {% for order in pending %}
-            <div class="order-card">
+            <div class="order-card" id="order-{{ order.id }}">
                 <div class="order-header">
                     <span class="order-id">Pedido #{{ order.id }}</span>
                     <span class="badge badge-pending">Pendiente</span>
@@ -164,7 +209,7 @@
                     👤 {{ order.customer.name or 'Cliente' }} · 📱 {{ order.customer.phone }}
                 </div>
                 <div class="order-meta">
-                    🕐 {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    🕐 {{ order.created_at.strftime('%d/%m %H:%M') }}
                 </div>
                 <ul class="order-items">
                     {% for item in order.items %}
@@ -173,7 +218,7 @@
                         <span>${{ '%.0f'|format(item.subtotal) }}</span>
                     </li>
                     {% if item.notes %}
-                    <li style="font-size:12px; color:#888; padding-left:16px;">
+                    <li style="font-size:11px; color:#888; padding-left:12px;">
                         📝 {{ item.notes }}
                     </li>
                     {% endif %}
@@ -182,13 +227,13 @@
                 <div class="order-total">Total: ${{ '%.0f'|format(order.total) }}</div>
                 <div class="order-actions">
                     <form action="/dashboard/confirm/{{ order.id }}" method="post"
-                          class="pickup-form">
+                          class="pickup-form" style="width:100%;">
                         <input type="text" name="pickup_time"
-                               placeholder="Ej: 18:30" required>
-                        <button type="submit" class="btn btn-confirm">✅ Confirmar</button>
+                               placeholder="Hora ej: 18:30" required style="flex:1;">
+                        <button type="submit" class="btn btn-confirm" style="flex:1;">✅ Confirmar</button>
                     </form>
-                    <form action="/dashboard/cancel/{{ order.id }}" method="post">
-                        <button type="submit" class="btn btn-cancel">❌ Cancelar</button>
+                    <form action="/dashboard/cancel/{{ order.id }}" method="post" style="width:100%;">
+                        <button type="submit" class="btn btn-cancel" style="width:100%;">❌ Cancelar</button>
                     </form>
                 </div>
             </div>
@@ -198,23 +243,6 @@
                 <div class="icon">🎉</div>
                 <p>No hay pedidos pendientes</p>
             </div>
-        {% endif %}
-    </div>
-
-    <div class="section" style="max-height: 400px; overflow-y: auto;">
-        <h2>💬 Mensajes de Clientes</h2>
-        {% if messages %}
-            {% for msg in messages %}
-            <div class="order-card" style="border-left-color: #128C7E;">
-                <div style="display:flex; justify-content:space-between; font-size:13px;">
-                    <span>👤 {{ msg.name or 'Desconocido' }} · 📱 {{ msg.phone }}</span>
-                    <span class="order-meta">{{ msg.created_at.strftime('%d/%m %H:%M') }}</span>
-                </div>
-                <div style="margin-top:6px; font-size:14px;">💬 {{ msg.text }}</div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="empty-state"><p>No hay mensajes aún</p></div>
         {% endif %}
     </div>
 
@@ -240,7 +268,7 @@
                 </ul>
                 <div class="order-total">Total: ${{ '%.0f'|format(order.total) }}</div>
                 {% if order.pickup_time %}
-                <div style="margin-top:8px; font-weight:500; color:#128C7E;">
+                <div style="margin-top:6px; font-weight:500; color:#128C7E; font-size:14px;">
                     🕐 Recoge a las: {{ order.pickup_time }}
                 </div>
                 {% endif %}
@@ -254,12 +282,19 @@
     </div>
 
     <div class="refresh-bar">
-        Última actualización: {{ now().strftime('%H:%M:%S') if now is defined else '---' }}
+        <span id="last-update">---</span>
         · <a href="/dashboard" style="color:#128C7E;">Recargar</a>
     </div>
 
     <script>
-        setTimeout(() => location.reload(), 30000);
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('last-update').textContent =
+                '🕐 ' + now.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        setTimeout(() => location.reload(), 15000);
     </script>
 </body>
 </html>
