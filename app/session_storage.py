@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from app.models import BotSession, SessionLocal
+from app import models
 
 
 def _serialize_cart(items):
@@ -50,9 +50,9 @@ def _deserialize_pending(data: str | None):
 
 def load_session(phone: str):
     from app.bot import Session
-    db = SessionLocal()
+    db = models.SessionLocal()
     try:
-        row = db.query(BotSession).filter(BotSession.phone == phone).first()
+        row = db.query(models.BotSession).filter(models.BotSession.phone == phone).first()
         if not row:
             return None
         session = Session(phone=phone)
@@ -66,11 +66,11 @@ def load_session(phone: str):
 
 
 def save_session(session):
-    db = SessionLocal()
+    db = models.SessionLocal()
     try:
-        row = db.query(BotSession).filter(BotSession.phone == session.phone).first()
+        row = db.query(models.BotSession).filter(models.BotSession.phone == session.phone).first()
         if not row:
-            row = BotSession(phone=session.phone)
+            row = models.BotSession(phone=session.phone)
             db.add(row)
         row.state = session.state
         row.current_category = session.current_category
@@ -83,9 +83,9 @@ def save_session(session):
 
 
 def delete_session(phone: str):
-    db = SessionLocal()
+    db = models.SessionLocal()
     try:
-        db.query(BotSession).filter(BotSession.phone == phone).delete()
+        db.query(models.BotSession).filter(models.BotSession.phone == phone).delete()
         db.commit()
     finally:
         db.close()
@@ -93,9 +93,9 @@ def delete_session(phone: str):
 
 def load_all_sessions() -> dict:
     from app.bot import Session
-    db = SessionLocal()
+    db = models.SessionLocal()
     try:
-        rows = db.query(BotSession).all()
+        rows = db.query(models.BotSession).all()
         result = {}
         for row in rows:
             session = Session(phone=row.phone)
