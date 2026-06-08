@@ -199,6 +199,7 @@ class DirectProvider(BaseProvider):
     async def send_text(self, to: str, text: str) -> dict:
         return await self._graph_post({
             "messaging_product": "whatsapp",
+            "recipient_type": "individual",
             "to": to,
             "type": "text",
             "text": {"body": text, "preview_url": False},
@@ -216,6 +217,7 @@ class DirectProvider(BaseProvider):
         )
         return await self._graph_post({
             "messaging_product": "whatsapp",
+            "recipient_type": "individual",
             "to": to,
             "type": "text",
             "text": {"body": body, "preview_url": False},
@@ -229,14 +231,16 @@ class DirectProvider(BaseProvider):
         )
         return await self._graph_post({
             "messaging_product": "whatsapp",
+            "recipient_type": "individual",
             "to": to,
             "type": "text",
             "text": {"body": body, "preview_url": False},
         })
 
     async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
-        return await self._graph_post({
+        payload = {
             "messaging_product": "whatsapp",
+            "recipient_type": "individual",
             "to": to,
             "type": "interactive",
             "interactive": {
@@ -245,11 +249,22 @@ class DirectProvider(BaseProvider):
                 "body": {"text": body},
                 "action": {"buttons": buttons},
             },
-        })
+        }
+        res = await self._graph_post(payload)
+        if "error" in res or res.get("error"):
+            print(f"[Direct] send_buttons failed, falling back to text. Error: {res}")
+            text_lines = [f"*{header}*", body, ""]
+            for i, btn in enumerate(buttons, 1):
+                title = btn.get("reply", {}).get("title", "")
+                text_lines.append(f"{i}️⃣ {title}")
+            text_lines.append("\nResponde con el número o texto de tu opción.")
+            return await self.send_text(to, "\n".join(text_lines))
+        return res
 
     async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
-        return await self._graph_post({
+        payload = {
             "messaging_product": "whatsapp",
+            "recipient_type": "individual",
             "to": to,
             "type": "interactive",
             "interactive": {
@@ -261,7 +276,20 @@ class DirectProvider(BaseProvider):
                     "sections": sections,
                 },
             },
-        })
+        }
+        res = await self._graph_post(payload)
+        if "error" in res or res.get("error"):
+            print(f"[Direct] send_list failed, falling back to text. Error: {res}")
+            text_lines = [f"*{header}*", body, ""]
+            row_index = 1
+            for sec in sections:
+                for row in sec.get("rows", []):
+                    title = row.get("title", "")
+                    text_lines.append(f"{row_index}️⃣ {title}")
+                    row_index += 1
+            text_lines.append("\nResponde con el número o nombre de la categoría.")
+            return await self.send_text(to, "\n".join(text_lines))
+        return res
 
 
 class SimulatorProvider(BaseProvider):

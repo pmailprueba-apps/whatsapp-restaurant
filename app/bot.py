@@ -217,6 +217,20 @@ async def _handle_category_selection(phone: str, text: str, session: Session) ->
     if text in ["volver", "atras", "atrás", "cancelar", "salir", "menu", "menú"]:
         return await _show_main_menu(phone)
 
+    # Mapeo numérico para fallback de texto
+    cat_names = get_category_names()
+    try:
+        idx = int(text) - 1
+        if 0 <= idx < len(cat_names):
+            cat_name = cat_names[idx]
+            session.current_category = cat_name
+            cat_text = format_category_text(cat_name)
+            if cat_text:
+                await send_text(phone, cat_text)
+                return BotState.SELECTING_PRODUCT, None
+    except (ValueError, TypeError):
+        pass
+
     if text.startswith("cat_"):
         category = text[4:]
         session.current_category = category
@@ -225,7 +239,7 @@ async def _handle_category_selection(phone: str, text: str, session: Session) ->
             await send_text(phone, cat_text)
             return BotState.SELECTING_PRODUCT, None
 
-    for cat_name in get_category_names():
+    for cat_name in cat_names:
         if cat_name.lower() in text or text == cat_name.lower():
             session.current_category = cat_name
             cat_text = format_category_text(cat_name)
@@ -352,10 +366,10 @@ async def _handle_notes(phone: str, text: str, session: Session) -> tuple[str, s
 
 
 async def _handle_confirmation(phone: str, text: str, session: Session) -> tuple[str, str | None]:
-    if text in ["agregar_mas", "agregar más", "si", "sí"]:
+    if text in ["agregar_mas", "agregar más", "si", "sí", "1", "1️⃣"]:
         return await _show_category_list(phone)
 
-    if text in ["confirmar_pedido", "confirmar", "confirm"]:
+    if text in ["confirmar_pedido", "confirmar", "confirm", "2", "2️⃣"]:
         total = sum(i.subtotal for i in session.cart)
         summary_lines = [f"   • {i.quantity}x {i.product_name} = ${i.subtotal:.0f}" for i in session.cart]
         summary = "📋 *RESUMEN DE TU PEDIDO*\n\n" + "\n".join(summary_lines) + f"\n\n*Total: ${total:.0f}*"
@@ -365,7 +379,7 @@ async def _handle_confirmation(phone: str, text: str, session: Session) -> tuple
         save_session(session)
         return BotState.ORDER_PLACED, summary
 
-    if text in ["cancelar_pedido", "cancelar", "cancel"]:
+    if text in ["cancelar_pedido", "cancelar", "cancel", "3", "3️⃣"]:
         session.cart = []
         session.state = BotState.MAIN_MENU
         save_session(session)
@@ -385,7 +399,7 @@ async def _handle_adding_more(phone: str, text: str, session: Session) -> tuple[
 
 
 async def _handle_post_order(phone: str, text: str, session: Session) -> tuple[str, str | None]:
-    if text in ["nuevo_pedido", "nuevo pedido", "otro pedido"]:
+    if text in ["nuevo_pedido", "nuevo pedido", "otro pedido", "1", "1️⃣"]:
         session.cart = []
         session.state = BotState.MAIN_MENU
         save_session(session)
