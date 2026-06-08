@@ -135,6 +135,29 @@ def confirm_order(order_id: int, pickup_time: str) -> models.Order | None:
         db.close()
 
 
+def save_message(phone: str, name: str, text: str, msg_type: str = "text"):
+    db = _get_db()
+    try:
+        msg = models.Message(phone=phone, name=name, text=text, msg_type=msg_type)
+        db.add(msg)
+        db.commit()
+    finally:
+        db.close()
+
+
+def get_messages(limit: int = 50):
+    db = _get_db()
+    try:
+        return (
+            db.query(models.Message)
+            .order_by(desc(models.Message.created_at))
+            .limit(limit)
+            .all()
+        )
+    finally:
+        db.close()
+
+
 def cancel_order(order_id: int) -> models.Order | None:
     db = _get_db()
     try:

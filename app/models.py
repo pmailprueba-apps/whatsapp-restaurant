@@ -52,6 +52,18 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
 
 
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True)
+    phone = Column(String(20), nullable=False, index=True)
+    name = Column(String(100), default="")
+    text = Column(Text, default="")
+    msg_type = Column(String(20), default="text")
+    is_from_customer = Column(Integer, default=1)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class BotSession(Base):
     __tablename__ = "bot_sessions"
 

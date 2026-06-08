@@ -201,6 +201,23 @@
         {% endif %}
     </div>
 
+    <div class="section" style="max-height: 400px; overflow-y: auto;">
+        <h2>💬 Mensajes de Clientes</h2>
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="order-card" style="border-left-color: #128C7E;">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span>👤 {{ msg.name or 'Desconocido' }} · 📱 {{ msg.phone }}</span>
+                    <span class="order-meta">{{ msg.created_at.strftime('%d/%m %H:%M') }}</span>
+                </div>
+                <div style="margin-top:6px; font-size:14px;">💬 {{ msg.text }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state"><p>No hay mensajes aún</p></div>
+        {% endif %}
+    </div>
+
     <div class="section">
         <h2>✅ Pedidos Confirmados</h2>
         {% if confirmed %}

@@ -8,7 +8,7 @@ from app.bot import (
     handle_message,
 )
 from app.config import settings
-from app.database import create_order, get_or_create_customer
+from app.database import create_order, get_or_create_customer, save_message
 from app.whatsapp import send_text
 
 router = APIRouter()
@@ -72,17 +72,11 @@ async def _handle_meta_webhook(body: dict, request: Request) -> dict:
                 if not text:
                     continue
 
-                # Reenviar mensaje al dueño para que vea todo
-                if settings.owner_phone and phone != settings.owner_phone:
-                    emoji = "📝" if msg_type == "text" else "🔘"
-                    owner_msg = (
-                        f"{emoji} *{profile_name}* ({phone})\n"
-                        f"💬 {text}"
-                    )
-                    try:
-                        await send_text(settings.owner_phone, owner_msg)
-                    except Exception:
-                        pass
+                # Guardar mensaje en DB para el inbox del dashboard
+                try:
+                    save_message(phone, profile_name, text, msg_type)
+                except Exception:
+                    pass
 
                 try:
                     state, summary = await handle_message(phone, text)
