@@ -45,11 +45,6 @@ async def index(request: Request):
     return RedirectResponse(url="/dashboard", status_code=302)
 
 
-@app.get("/auth/ml/callback")
-async def ml_callback(code: str = ""):
-    return {"code": code, "received": True}
-
-
 @app.get("/privacy")
 async def privacy():
     return HTMLResponse("""<!DOCTYPE html>
