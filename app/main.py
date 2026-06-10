@@ -12,6 +12,7 @@ from app.dashboard import router as dashboard_router
 from app.models import init_db, init_engine
 from app.webhook import router as webhook_router
 from app.simulator import router as simulator_router
+from app.whatsapp_provider import start_whatsapp_web, stop_whatsapp_web
 
 app = FastAPI(title="WhatsApp Restaurant Bot")
 
@@ -29,11 +30,24 @@ def startup():
     init_engine(settings.database_url)
     init_db()
     init_sessions()
+    if settings.whatsapp_provider == "webjs":
+        start_whatsapp_web()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    if settings.whatsapp_provider == "webjs":
+        stop_whatsapp_web()
 
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return RedirectResponse(url="/dashboard", status_code=302)
+
+
+@app.get("/auth/ml/callback")
+async def ml_callback(code: str = ""):
+    return {"code": code, "received": True}
 
 
 @app.get("/privacy")
