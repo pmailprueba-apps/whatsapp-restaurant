@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     whatsapp_business_phone: str = ""
     manychat_api_key: str = ""
     manychat_verify_token: str = ""
+    webjs_port: int = 3001
     database_url: str = "sqlite:///data/restaurant.db"
     owner_phone: str = ""
     app_name: str = "Tacos y Hamburguesas El Compa"

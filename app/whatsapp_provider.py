@@ -322,6 +322,80 @@ class SimulatorProvider(BaseProvider):
         await self._send_ws({"type": "list", "header": header, "body": body, "button_text": button_text, "sections": sections})
         return {"status": "ok"}
 
+class WhatsAppWebProvider(BaseProvider):
+    def __init__(self, base_url: str = "http://localhost:3001"):
+        self.base_url = base_url
+
+    async def _call(self, endpoint: str, payload: dict) -> dict:
+        async with httpx.AsyncClient(timeout=15) as client:
+            try:
+                resp = await client.post(f"{self.base_url}/{endpoint}", json=payload)
+                return resp.json()
+            except Exception as e:
+                print(f"[WhatsAppWeb] Error calling {endpoint}: {e}")
+                return {"error": str(e)}
+
+    async def send_text(self, to: str, text: str) -> dict:
+        return await self._call("send-text", {"to": to, "text": text})
+
+    async def send_order_confirmation(
+        self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
+    ) -> dict:
+        body = (
+            f"✅ *PEDIDO # {order_id} CONFIRMADO*\n\n"
+            f"{items_text}\n\n"
+            f"*Total: ${total:.0f}*\n\n"
+            f"🕐 *Recoge a las: {pickup_time}*\n\n"
+            f"📍 Pasa al local y paga en efectivo. ¡Te esperamos! 🎉"
+        )
+        return await self._call("send-text", {"to": to, "text": body})
+
+    async def send_order_cancellation(self, to: str, order_id: int) -> dict:
+        body = (
+            f"❌ *PEDIDO # {order_id} CANCELADO*\n\n"
+            "Lo sentimos, tu pedido ha sido cancelado. "
+            "Puedes hacer un nuevo pedido cuando quieras."
+        )
+        return await self._call("send-text", {"to": to, "text": body})
+
+    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
+        return await self._call("send-buttons", {
+            "to": to, "header": header, "body": body, "buttons": buttons,
+        })
+
+    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
+        return await self._call("send-list", {
+            "to": to, "header": header, "body": body,
+            "buttonText": button_text, "sections": sections,
+        })
+
+
+_whatsapp_web_process = None
+
+def start_whatsapp_web():
+    global _whatsapp_web_process
+    if _whatsapp_web_process is not None:
+        return
+    import subprocess
+    import os
+    webjs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "whatsapp-web")
+    _whatsapp_web_process = subprocess.Popen(
+        ["node", "server.js"],
+        cwd=webjs_dir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    print(f"[WhatsAppWeb] Servicio iniciado (PID: {_whatsapp_web_process.pid})")
+
+
+def stop_whatsapp_web():
+    global _whatsapp_web_process
+    if _whatsapp_web_process is not None:
+        _whatsapp_web_process.terminate()
+        _whatsapp_web_process = None
+        print("[WhatsAppWeb] Servicio detenido")
+
+
 _provider_instance = None
 
 def get_provider() -> BaseProvider:
@@ -331,6 +405,9 @@ def get_provider() -> BaseProvider:
             _provider_instance = ManyChatProvider(settings.manychat_api_key)
         elif settings.whatsapp_provider == "simulator":
             _provider_instance = SimulatorProvider()
+        elif settings.whatsapp_provider == "webjs":
+            start_whatsapp_web()
+            _provider_instance = WhatsAppWebProvider()
         else:
             _provider_instance = DirectProvider()
     return _provider_instance
