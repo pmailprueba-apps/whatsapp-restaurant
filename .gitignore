@@ -5,3 +5,6 @@ __pycache__/
 data/
 *.db
 .DS_Store
+whatsapp-web/session-data/
+whatsapp-web/node_modules/
+whatsapp-web/.wwebjs_cache/

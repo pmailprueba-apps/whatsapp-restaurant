@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  whatsapp-bot:
+    build: .
+    container_name: whatsapp-restaurant-bot
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - WHATSAPP_PROVIDER=direct
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WHATSAPP_VERIFY_TOKEN=${WHATSAPP_VERIFY_TOKEN}
+      - OWNER_PHONE=${OWNER_PHONE}
+      - DATABASE_URL=sqlite:///data/restaurant.db
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
