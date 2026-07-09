@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     whatsapp_token: str = ""
     whatsapp_phone_number_id: str = ""
     whatsapp_verify_token: str = "mi_verify_token_123"
+    whatsapp_app_secret: str = ""
     whatsapp_business_phone: str = ""
     manychat_api_key: str = ""
     manychat_verify_token: str = ""

@@ -30,14 +30,29 @@ async def verify_webhook(request: Request):
     return PlainTextResponse("Verification failed", status_code=403)
 
 
+import hmac
+import hashlib
+
 @router.post("/webhook/whatsapp")
 async def receive_message(request: Request):
+    raw_body = await request.body()
     try:
         body = await request.json()
     except Exception:
         return {"status": "error", "detail": "invalid json"}
 
     if "entry" in body:
+        # Validación HMAC (si WHATSAPP_APP_SECRET está configurado)
+        if settings.whatsapp_app_secret:
+            signature = request.headers.get("X-Hub-Signature-256", "").replace("sha256=", "")
+            expected_hash = hmac.new(
+                settings.whatsapp_app_secret.encode(),
+                raw_body,
+                hashlib.sha256
+            ).hexdigest()
+            if not hmac.compare_digest(signature, expected_hash):
+                return PlainTextResponse("Invalid signature", status_code=403)
+                
         return await _handle_meta_webhook(body, request)
 
     if "phone" in body:
@@ -114,10 +129,23 @@ async def _handle_meta_webhook(body: dict, request: Request) -> dict:
     for entry in body.get("entry", []):
         for change in entry.get("changes", []):
             value = change.get("value", {})
+            
+            # Filtro estricto para ignorar PSID y asegurar que es WhatsApp
+            metadata = value.get("metadata", {})
+            incoming_phone_id = metadata.get("phone_number_id", "")
+            if incoming_phone_id != settings.whatsapp_phone_number_id:
+                # Ignorar payloads que no vengan a nuestro ID (evita Messenger/Instagram)
+                continue
+                
             messages = value.get("messages", [])
 
             for msg in messages:
                 phone = msg.get("from", "")
+                
+                # Ignorar IDs de 15 dígitos (PSIDs)
+                if len(phone) == 15 and phone.startswith("10"):
+                    continue
+                    
                 msg_type = msg.get("type", "")
                 profile_name = (
                     value.get("contacts", [{}])[0]
