@@ -12,7 +12,7 @@ services:
       - key: WHATSAPP_TOKEN
         sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
-        sync: false
+        value: "1125275410676801"
       - key: WHATSAPP_VERIFY_TOKEN
         sync: false
       - key: OWNER_PHONE
