@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     manychat_api_key: str = ""
     manychat_verify_token: str = ""
     webjs_port: int = 3001
+    bridge_url: str = "http://localhost:3002"
+    openwa_url: str = "http://localhost:2785"
+    openwa_api_key: str = "dev-key-cambiar-en-prod"
+    openwa_session_id: str = ""
     database_url: str = "sqlite:///data/restaurant.db"
     owner_phone: str = ""
     app_name: str = "Tacos y Hamburguesas El Compa"

@@ -398,58 +398,6 @@ def stop_whatsapp_web():
 
 _provider_instance = None
 
-class OpenWAProvider(BaseProvider):
-    def __init__(self, base_url: str, api_key: str, session_id: str):
-        self.base_url = base_url
-        self.api_key = api_key
-        self.session_id = session_id
-
-    async def _call(self, endpoint: str, payload: dict) -> dict:
-        url = f"{self.base_url}/api/sessions/{self.session_id}/{endpoint}"
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                resp = await client.post(url, json=payload, headers={"X-API-Key": self.api_key})
-                return resp.json()
-            except Exception as e:
-                print(f"[OpenWA] Error calling {endpoint}: {e}")
-                return {"error": str(e)}
-
-    async def send_text(self, to: str, text: str) -> dict:
-        chat_id = to if "@" in to else f"{to}@s.whatsapp.net"
-        return await self._call("messages/send-text", {"chatId": chat_id, "text": text})
-
-    async def send_order_confirmation(
-        self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
-    ) -> dict:
-        body = (
-            f"✅ *PEDIDO # {order_id} CONFIRMADO*\n\n"
-            f"{items_text}\n\n"
-            f"*Total: ${total:.0f}*\n\n"
-            f"🕐 *Recoge a las: {pickup_time}*\n\n"
-            f"📍 Pasa al local y paga en efectivo. ¡Te esperamos!"
-        )
-        return await self.send_text(to, body)
-
-    async def send_order_cancellation(self, to: str, order_id: int) -> dict:
-        body = (
-            f"❌ *PEDIDO # {order_id} CANCELADO*\n\n"
-            "Lo sentimos, tu pedido ha sido cancelado. "
-            "Puedes hacer un nuevo pedido cuando quieras."
-        )
-        return await self.send_text(to, body)
-
-    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
-        return await self.send_text(to, f"{header}\n\n{body}")
-
-    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
-        text_lines = [f"*{header}*", body, ""]
-        for sec in sections:
-            for row in sec.get("rows", []):
-                text_lines.append(f"• {row.get('title', '')}")
-        text_lines.append(f"\nResponde con el nombre de tu opción.")
-        return await self.send_text(to, "\n".join(text_lines))
-
-
 class BridgeProvider(BaseProvider):
     def __init__(self, base_url: str = "http://localhost:3002"):
         self.base_url = base_url
@@ -513,8 +461,6 @@ def get_provider() -> BaseProvider:
             _provider_instance = WhatsAppWebProvider()
         elif settings.whatsapp_provider == "bridge":
             _provider_instance = BridgeProvider(settings.bridge_url)
-        elif settings.whatsapp_provider == "waha":
-            _provider_instance = WAHAProvider("http://localhost:2785", "6c3ad97b-babe-4436-b85c-3bbc195f9d7b", "dev-key-cambiar-en-prod")
         else:
             _provider_instance = DirectProvider()
     return _provider_instance
@@ -523,63 +469,3 @@ def get_provider() -> BaseProvider:
 def _get_db():
     from app import models
     return models.SessionLocal()
-class WAHAProvider(BaseProvider):
-    def __init__(self, waha_url: str, session_name: str, api_key: str = None):
-        self.waha_url = waha_url.rstrip('/')
-        self.session_name = session_name
-        self.api_key = api_key
-
-    async def _call(self, endpoint: str, payload: dict) -> dict:
-        url = f"{self.waha_url}/api/sessions/{self.session_name}/{endpoint}"
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["X-API-Key"] = self.api_key
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                resp = await client.post(url, json=payload, headers=headers)
-                return resp.json()
-            except Exception as e:
-                print(f"[WAHA] Error calling {endpoint}: {e}")
-                return {"error": str(e)}
-
-    async def send_text(self, to: str, text: str) -> dict:
-        return await self._call("messages/send-text", {"chatId": to, "text": text})
-
-    async def send_order_confirmation(
-        self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
-    ) -> dict:
-        body = (
-            f"✅ *PEDIDO # {order_id} CONFIRMADO*\n\n"
-            f"{items_text}\n\n"
-            f"*Total: ${total:.0f}*\n\n"
-            f"🕐 *Recoge a las: {pickup_time}*\n\n"
-            f"📍 Pasa al local y paga en efectivo. ¡Te esperamos! 🎉"
-        )
-        return await self.send_text(to, body)
-
-    async def send_order_cancellation(self, to: str, order_id: int) -> dict:
-        body = (
-            f"❌ *PEDIDO # {order_id} CANCELADO*\n\n"
-            "Lo sentimos, tu pedido ha sido cancelado. "
-            "Puedes hacer un nuevo pedido cuando quieras."
-        )
-        return await self.send_text(to, body)
-
-    async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
-        text_lines = [f"*{header}*", body, ""]
-        for i, btn in enumerate(buttons, 1):
-            title = btn.get("reply", {}).get("title", "")
-            text_lines.append(f"{i}️⃣ {title}")
-        text_lines.append("\nResponde con el número de tu opción.")
-        return await self.send_text(to, "\n".join(text_lines))
-
-    async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
-        text_lines = [f"*{header}*", body, ""]
-        row_index = 1
-        for sec in sections:
-            for row in sec.get("rows", []):
-                title = row.get("title", "")
-                text_lines.append(f"{row_index}️⃣ {title}")
-                row_index += 1
-        text_lines.append("\nResponde con el número o nombre de la categoría.")
-        return await self.send_text(to, "\n".join(text_lines))

@@ -1,0 +1,53 @@
+services:
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: whatsapp-bot
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    env_file: .env
+    environment:
+      - WHATSAPP_PROVIDER=openwa
+      - OPENWA_URL=http://openwa:2785
+      - OPENWA_API_KEY=dev-key-cambiar-en-prod
+      - OPENWA_SESSION_ID=d26fbb2c-815e-458b-87af-6046b9244b58
+      - DATABASE_URL=sqlite:///data/restaurant.db
+    volumes:
+      - bot-data:/app/data
+    networks:
+      - whatsapp-restaurant
+      - fabrica-bots
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:8000/]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  caddy:
+    image: caddy:alpine
+    container_name: whatsapp-caddy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - whatsapp-restaurant
+    depends_on:
+      - bot
+
+networks:
+  whatsapp-restaurant:
+  fabrica-bots:
+    external: true
+    name: fabrica-bots-prod_default
+
+volumes:
+  bot-data:
+  caddy-data:
+  caddy-config:
