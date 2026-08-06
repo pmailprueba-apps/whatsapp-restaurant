@@ -530,10 +530,14 @@ class WAHAProvider(BaseProvider):
         self.api_key = api_key
 
     async def _call(self, endpoint: str, payload: dict) -> dict:
-        url = f"{self.waha_url}/api/sessions/{self.session_name}/{endpoint}"
+        url = f"{self.waha_url}/api/{endpoint}"
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["X-API-Key"] = self.api_key
+            
+        if "session" not in payload:
+            payload["session"] = self.session_name
+
         async with httpx.AsyncClient(timeout=15) as client:
             try:
                 resp = await client.post(url, json=payload, headers=headers)
@@ -542,8 +546,13 @@ class WAHAProvider(BaseProvider):
                 print(f"[WAHA] Error calling {endpoint}: {e}")
                 return {"error": str(e)}
 
+    def _format_chat_id(self, to: str) -> str:
+        if not to.endswith("@c.us") and not to.endswith("@g.us"):
+            return f"{to}@c.us"
+        return to
+
     async def send_text(self, to: str, text: str) -> dict:
-        return await self._call("messages/send-text", {"chatId": to, "text": text})
+        return await self._call("sendText", {"chatId": self._format_chat_id(to), "text": text})
 
     async def send_order_confirmation(
         self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
