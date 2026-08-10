@@ -13,6 +13,10 @@ class BaseProvider(ABC):
         ...
 
     @abstractmethod
+    async def send_image(self, to: str, image_url: str, caption: str = "") -> dict:
+        ...
+
+    @abstractmethod
     async def send_order_confirmation(
         self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
     ) -> dict:
@@ -106,6 +110,9 @@ class ManyChatProvider(BaseProvider):
 
     async def send_text(self, to: str, text: str) -> dict:
         return await self._meta_send(to, text)
+
+    async def send_image(self, to: str, image_url: str, caption: str = "") -> dict:
+        return await self.send_text(to, f"{caption}\n{image_url}" if caption else image_url)
 
     async def send_order_confirmation(
         self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
@@ -205,6 +212,18 @@ class DirectProvider(BaseProvider):
             "text": {"body": text, "preview_url": False},
         })
 
+    async def send_image(self, to: str, image_url: str, caption: str = "") -> dict:
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "image",
+            "image": {"link": image_url},
+        }
+        if caption:
+            payload["image"]["caption"] = caption
+        return await self._graph_post(payload)
+
     async def send_order_confirmation(
         self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
     ) -> dict:
@@ -302,6 +321,10 @@ class SimulatorProvider(BaseProvider):
 
     async def send_text(self, to: str, text: str) -> dict:
         await self._send_ws({"type": "text", "text": text})
+        return {"status": "ok"}
+
+    async def send_image(self, to: str, image_url: str, caption: str = "") -> dict:
+        await self._send_ws({"type": "image", "url": image_url, "caption": caption})
         return {"status": "ok"}
 
     async def send_order_confirmation(self, to: str, order_id: int, items_text: str, total: float, pickup_time: str) -> dict:
@@ -530,13 +553,10 @@ class WAHAProvider(BaseProvider):
         self.api_key = api_key
 
     async def _call(self, endpoint: str, payload: dict) -> dict:
-        url = f"{self.waha_url}/api/{endpoint}"
+        url = f"{self.waha_url}/api/sessions/{self.session_name}/{endpoint}"
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["X-API-Key"] = self.api_key
-            
-        if "session" not in payload:
-            payload["session"] = self.session_name
 
         async with httpx.AsyncClient(timeout=15) as client:
             try:
@@ -552,7 +572,16 @@ class WAHAProvider(BaseProvider):
         return to
 
     async def send_text(self, to: str, text: str) -> dict:
-        return await self._call("sendText", {"chatId": self._format_chat_id(to), "text": text})
+        return await self._call("messages/send-text", {"chatId": self._format_chat_id(to), "text": text})
+
+    async def send_image(self, to: str, image_url: str, caption: str = "") -> dict:
+        payload = {
+            "chatId": self._format_chat_id(to),
+            "url": image_url,
+        }
+        if caption:
+            payload["caption"] = caption
+        return await self._call("messages/send-image", payload)
 
     async def send_order_confirmation(
         self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
@@ -575,20 +604,36 @@ class WAHAProvider(BaseProvider):
         return await self.send_text(to, body)
 
     async def send_buttons(self, to: str, header: str, body: str, buttons: list[dict]) -> dict:
-        text_lines = [f"*{header}*", body, ""]
+        text_lines = []
+        if header:
+            text_lines.append(f"*{header.upper()}*")
+        if body:
+            text_lines.append(body)
+        if text_lines:
+            text_lines.append("")
+
         for i, btn in enumerate(buttons, 1):
-            title = btn.get("reply", {}).get("title", "")
-            text_lines.append(f"{i}️⃣ {title}")
-        text_lines.append("\nResponde con el número de tu opción.")
+            title = btn.get("reply", {}).get("title", "").upper()
+            text_lines.append(f"*{i}️⃣ {title}*")
+
+        text_lines.append("\n*Responde con el NÚMERO o TEXTO de tu opción.*")
         return await self.send_text(to, "\n".join(text_lines))
 
     async def send_list(self, to: str, header: str, body: str, button_text: str, sections: list[dict]) -> dict:
-        text_lines = [f"*{header}*", body, ""]
+        text_lines = []
+        if header:
+            text_lines.append(f"*{header.upper()}*")
+        if body:
+            text_lines.append(body)
+        if text_lines:
+            text_lines.append("")
+
         row_index = 1
         for sec in sections:
             for row in sec.get("rows", []):
-                title = row.get("title", "")
-                text_lines.append(f"{row_index}️⃣ {title}")
+                title = row.get("title", "").upper()
+                text_lines.append(f"*{row_index}️⃣ {title}*")
                 row_index += 1
-        text_lines.append("\nResponde con el número o nombre de la categoría.")
+
+        text_lines.append("\n*Responde con el NÚMERO o NOMBRE de tu opción.*")
         return await self.send_text(to, "\n".join(text_lines))

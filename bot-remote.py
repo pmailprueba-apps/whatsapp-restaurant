@@ -126,7 +126,7 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
 
 async def _show_main_menu(phone: str) -> tuple[str, str | None]:
     menu = (
-        "🍽️ *Tacos y Hamburguesas El Compa*\n\n"
+        "🍽️ *Cenaduría Viky — Hamburguesas y Tacos*\n\n"
         "¡Bienvenido! 🎉 Elige una opción:\n\n"
         "1️⃣ *Ver Menú*\n"
         "2️⃣ *Hacer Pedido*\n"
@@ -148,9 +148,10 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
     if text in ["hacer_pedido", "hacer pedido", "pedido", "orden", "2"]:
         return await _show_category_list(phone)
 
-    if text in ["informacion", "información", "info", "horario", "direccion", "3"]:
+    if text in ["informacion", "información", "info", "horario", "direccion", "dirección", "ubicacion", "ubicación", "maps", "3"]:
         info = (
-            "📍 *Dirección:* Calle Melchor Ocampo 120, Zona Centro\n"
+            "📍 *Dirección:* Prolongación Moctezuma 2140, Tercera Grande 2, 78143 San Luis Potosí, S.L.P.\n"
+            "🗺️ *Google Maps:* https://maps.app.goo.gl/67C7AgADex3V8t8i9\n"
             "🕐 *Horario:* Lunes a Domingo 11:00 AM - 11:00 PM\n"
             "📱 *Teléfono:* +52 1 444 650 6790\n"
             "💵 *Forma de pago:* Efectivo en local\n\n"
@@ -346,51 +347,73 @@ async def _handle_notes(phone: str, text: str, session: Session) -> tuple[str, s
         return await _show_main_menu(phone)
 
     item = session.pending_item
-    if text.lower() not in ["no", "nada", "ninguna", "ninguno", "sin notas"]:
-        item.notes = text
+    if item is not None:
+        if text.lower() not in ["no", "nada", "ninguna", "ninguno", "sin notas"]:
+            item.notes = text
+        session.cart.append(item)
+        session.pending_item = None
 
-    session.cart.append(item)
-    session.pending_item = None
+    session.cart = [i for i in session.cart if i is not None]
+    if not session.cart:
+        await send_text(phone, "🛒 Tu carrito está vacío.")
+        return await _show_category_list(phone)
 
-    total = sum(i.subtotal for i in session.cart)
-    cart_lines = [f"   • {i.quantity}x {i.product_name} = ${i.subtotal:.0f}" for i in session.cart]
-    cart_text = "🛒 *Tu pedido:*\n" + "\n".join(cart_lines) + f"\n\n*Total: ${total:.0f}*"
+    total = sum(i.subtotal for i in session.cart if hasattr(i, "subtotal"))
+    cart_lines = []
+    for i in session.cart:
+        line = f"   • {i.quantity}x *{i.product_name.upper()}* = *${i.subtotal:.0f}*"
+        if i.notes:
+            line += f"\n     └ 📝 _Nota: {i.notes}_"
+        cart_lines.append(line)
+
+    cart_text = "🛒 *RESUMEN DE TU PEDIDO:*\n\n" + "\n".join(cart_lines) + f"\n\n💰 *TOTAL: ${total:.0f}*"
 
     await send_text(phone, cart_text)
-    await send_buttons(phone, "📋 ¿Qué sigue?", "¿Quieres agregar algo más?", [
-        {"type": "reply", "reply": {"id": "agregar_mas", "title": "✅ Agregar más"}},
-        {"type": "reply", "reply": {"id": "confirmar_pedido", "title": "📋 Confirmar"}},
-        {"type": "reply", "reply": {"id": "cancelar_pedido", "title": "🗑️ Cancelar"}},
+    await send_buttons(phone, "OPCIONES DISPONIBLES", "Selecciona una opción para continuar:", [
+        {"type": "reply", "reply": {"id": "confirmar_pedido", "title": "CONFIRMAR Y ENVIAR PEDIDO"}},
+        {"type": "reply", "reply": {"id": "agregar_mas", "title": "AGREGAR MÁS PRODUCTOS"}},
+        {"type": "reply", "reply": {"id": "cancelar_pedido", "title": "CANCELAR PEDIDO"}},
     ])
     return BotState.CONFIRMING, None
 
 
 async def _handle_confirmation(phone: str, text: str, session: Session) -> tuple[str, str | None]:
-    if text in ["agregar_mas", "agregar más", "si", "sí", "1", "1️⃣"]:
-        return await _show_category_list(phone)
+    session.cart = [i for i in session.cart if i is not None]
+    if text in ["confirmar_pedido", "confirmar", "confirm", "1", "1️⃣"]:
+        if not session.cart:
+            await send_text(phone, "🛒 Tu carrito está vacío. Elige tus productos para continuar:")
+            return await _show_category_list(phone)
 
-    if text in ["confirmar_pedido", "confirmar", "confirm", "2", "2️⃣"]:
-        total = sum(i.subtotal for i in session.cart)
-        summary_lines = [f"   • {i.quantity}x {i.product_name} = ${i.subtotal:.0f}" for i in session.cart]
-        summary = "📋 *RESUMEN DE TU PEDIDO*\n\n" + "\n".join(summary_lines) + f"\n\n*Total: ${total:.0f}*"
-        summary += "\n\n✅ Pedido enviado. Espera la confirmación del local con la hora de recogida."
+        total = sum(i.subtotal for i in session.cart if hasattr(i, "subtotal"))
+        summary_lines = []
+        for i in session.cart:
+            line = f"   • {i.quantity}x *{i.product_name.upper()}* = *${i.subtotal:.0f}*"
+            if i.notes:
+                line += f"\n     └ 📝 _Nota: {i.notes}_"
+            summary_lines.append(line)
+
+        summary = "📋 *RESUMEN DE TU PEDIDO*\n\n" + "\n".join(summary_lines) + f"\n\n💰 *TOTAL: ${total:.0f}*"
+        summary += "\n\n⏳ *ESTADO: PENDIENTE DE CONFIRMACIÓN DEL LOCAL*"
 
         session.state = BotState.ORDER_PLACED
         save_session(session)
         return BotState.ORDER_PLACED, summary
 
+    if text in ["agregar_mas", "agregar más", "2", "2️⃣"]:
+        return await _show_category_list(phone)
+
     if text in ["cancelar_pedido", "cancelar", "cancel", "3", "3️⃣"]:
         session.cart = []
         session.state = BotState.MAIN_MENU
         save_session(session)
-        await send_text(phone, "❌ Pedido cancelado. ¿Necesitas algo más?")
-        await send_buttons(phone, "🔙 Volver", "", [
-            {"type": "reply", "reply": {"id": "hacer_pedido", "title": "🛒 Nuevo Pedido"}},
-            {"type": "reply", "reply": {"id": "volver", "title": "🔙 Menú Principal"}},
+        await send_text(phone, "❌ *PEDIDO CANCELADO.* ¿Necesitas algo más?")
+        await send_buttons(phone, "MENÚ PRINCIPAL", "", [
+            {"type": "reply", "reply": {"id": "hacer_pedido", "title": "NUEVO PEDIDO"}},
+            {"type": "reply", "reply": {"id": "volver", "title": "MENÚ PRINCIPAL"}},
         ])
         return BotState.MAIN_MENU, None
 
-    await send_text(phone, "Opción no válida. Usa los botones de abajo 👇")
+    await send_text(phone, "Opción no válida. Usa los números de la lista 👇")
     return BotState.CONFIRMING, None
 
 

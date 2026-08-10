@@ -11,6 +11,10 @@ async def send_text(to: str, text: str) -> dict:
     return await _get_provider_for(to).send_text(to, text)
 
 
+async def send_image(to: str, image_url: str, caption: str = "") -> dict:
+    return await _get_provider_for(to).send_image(to, image_url, caption)
+
+
 async def send_order_confirmation(
     to: str, order_id: int, items_text: str, total: float, pickup_time: str
 ) -> dict:

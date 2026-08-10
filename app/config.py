@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     openwa_api_key: str = "dev-key-cambiar-en-prod"
     openwa_session_id: str = ""
     database_url: str = "sqlite:///data/restaurant.db"
-    owner_phone: str = ""
-    app_name: str = "Tacos y Hamburguesas El Compa"
+    owner_phone: str = "5214446506790@c.us"
+    app_name: str = "Cenaduría Viky Hamburguesas y Tacos"
 
     def model_post_init(self, __context):
         self.whatsapp_token = self.whatsapp_token.strip()
