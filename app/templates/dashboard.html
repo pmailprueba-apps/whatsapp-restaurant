@@ -146,6 +146,8 @@
         }
         .btn-confirm { background: #10b981; color: white; }
         .btn-confirm:hover { background: #059669; }
+        .btn-confirm-only { background: #0284c7; color: white; }
+        .btn-confirm-only:hover { background: #0369a1; }
         .btn-cancel { background: #ef4444; color: white; }
         .btn-cancel:hover { background: #dc2626; }
         .btn-print { background: #3b82f6; color: white; }
@@ -308,7 +310,12 @@
                 <div class="order-actions">
                     <form action="/dashboard/confirm/{{ order.id }}" method="post" class="pickup-form">
                         <input type="text" name="pickup_time" placeholder="Hora ej: 19:30" required>
-                        <button type="submit" class="btn btn-confirm">✅ Confirmar & Imprimir</button>
+                        <button type="submit" name="print_ticket" value="true" class="btn btn-confirm" title="Confirmar pedido, avisar al cliente por WhatsApp y enviar ticket a la impresora térmica">
+                            ✅ Confirmar & Imprimir
+                        </button>
+                        <button type="submit" name="print_ticket" value="false" class="btn btn-confirm-only" title="Confirmar pedido y avisar al cliente por WhatsApp sin imprimir ticket">
+                            ✓ Solo Confirmar
+                        </button>
                     </form>
                     <form action="/dashboard/print/{{ order.id }}" method="post" style="display:inline;">
                         <button type="submit" class="btn btn-print" title="Reimprimir ticket en la impresora">🖨️ Imprimir</button>

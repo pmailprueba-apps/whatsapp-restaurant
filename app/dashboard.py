@@ -121,7 +121,12 @@ async def dashboard(request: Request):
 
 
 @router.post("/dashboard/confirm/{order_id}")
-async def confirm_order_route(request: Request, order_id: int, pickup_time: str = Form(...)):
+async def confirm_order_route(
+    request: Request,
+    order_id: int,
+    pickup_time: str = Form(...),
+    print_ticket: str = Form("true"),
+):
     if not _is_authenticated(request):
         return RedirectResponse(url="/login", status_code=303)
 
@@ -139,30 +144,32 @@ async def confirm_order_route(request: Request, order_id: int, pickup_time: str 
             total=order.total,
             pickup_time=pickup_time,
         )
-        # Print confirmed ticket with pickup time
-        try:
-            items_data = [
-                {
-                    "product_name": i.product_name,
-                    "category": i.category,
-                    "quantity": i.quantity,
-                    "unit_price": i.unit_price,
-                    "notes": i.notes,
-                    "subtotal": i.subtotal,
-                }
-                for i in order.items
-            ]
-            send_ticket_to_printer(
-                order_id=order.id,
-                customer_name=order.customer.name or order.customer.phone,
-                phone=order.customer.phone,
-                items=items_data,
-                total=order.total,
-                pickup_time=pickup_time,
-                order_notes=order.notes or "",
-            )
-        except Exception as pe:
-            print(f"[Dashboard] Error sending ticket to printer on confirm: {pe}")
+        # Print confirmed ticket with pickup time only if print_ticket is true
+        should_print = str(print_ticket).strip().lower() in ("true", "1", "yes", "on")
+        if should_print:
+            try:
+                items_data = [
+                    {
+                        "product_name": i.product_name,
+                        "category": i.category,
+                        "quantity": i.quantity,
+                        "unit_price": i.unit_price,
+                        "notes": i.notes,
+                        "subtotal": i.subtotal,
+                    }
+                    for i in order.items
+                ]
+                send_ticket_to_printer(
+                    order_id=order.id,
+                    customer_name=order.customer.name or order.customer.phone,
+                    phone=order.customer.phone,
+                    items=items_data,
+                    total=order.total,
+                    pickup_time=pickup_time,
+                    order_notes=order.notes or "",
+                )
+            except Exception as pe:
+                print(f"[Dashboard] Error sending ticket to printer on confirm: {pe}")
 
     return RedirectResponse(url="/dashboard", status_code=303)
 
