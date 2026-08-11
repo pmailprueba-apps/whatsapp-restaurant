@@ -106,7 +106,6 @@ async def dashboard(request: Request):
     pending = get_pending_orders()
     confirmed = get_confirmed_orders()
     all_orders = get_all_orders()
-    messages = get_messages(100)
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
@@ -114,7 +113,6 @@ async def dashboard(request: Request):
             "pending": pending,
             "confirmed": confirmed,
             "all_orders": all_orders,
-            "messages": messages,
             "now": datetime.now,
         },
     )
