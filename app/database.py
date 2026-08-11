@@ -7,6 +7,10 @@ from app import models
 
 
 def _get_db():
+    if models.SessionLocal is None:
+        from app.config import settings
+        models.init_engine(settings.database_url)
+        models.init_db()
     return models.SessionLocal()
 
 

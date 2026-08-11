@@ -27,9 +27,9 @@ async def dashboard(request: Request):
     all_orders = get_all_orders()
     messages = get_messages(100)
     return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
+        request=request,
+        name="dashboard.html",
+        context={
             "pending": pending,
             "confirmed": confirmed,
             "all_orders": all_orders,
