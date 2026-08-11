@@ -177,3 +177,80 @@ def cancel_order(order_id: int) -> models.Order | None:
         return order
     finally:
         db.close()
+
+
+def get_sales_analytics(period: str = "today") -> dict:
+    from datetime import timedelta
+    db = _get_db()
+    try:
+        now_local = datetime.now()
+        
+        if period == "today":
+            start_dt = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+            period_label = f"Hoy ({now_local.strftime('%d/%m/%Y')})"
+        elif period == "week":
+            start_dt = (now_local - timedelta(days=now_local.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            period_label = f"Esta Semana (desde {start_dt.strftime('%d/%m/%Y')})"
+        elif period == "month":
+            start_dt = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            period_label = f"Este Mes ({now_local.strftime('%B %Y')})"
+        else:  # "all"
+            period = "all"
+            start_dt = datetime(2000, 1, 1)
+            period_label = "Histórico Total"
+
+        query = (
+            db.query(models.Order)
+            .options(joinedload(models.Order.customer), joinedload(models.Order.items))
+            .order_by(desc(models.Order.created_at))
+        )
+        
+        all_period_orders = []
+        for o in query.all():
+            o_dt = o.created_at
+            if o_dt.tzinfo is not None:
+                o_dt = o_dt.astimezone().replace(tzinfo=None)
+            if o_dt >= start_dt:
+                all_period_orders.append(o)
+
+        confirmed_orders = [o for o in all_period_orders if o.status in ("confirmed", "ready")]
+        pending_orders = [o for o in all_period_orders if o.status == "pending"]
+        cancelled_orders = [o for o in all_period_orders if o.status == "cancelled"]
+
+        total_sales = sum(o.total for o in confirmed_orders)
+        total_orders_count = len(confirmed_orders)
+        avg_ticket = (total_sales / total_orders_count) if total_orders_count > 0 else 0.0
+
+        # Top products breakdown
+        product_stats = {}
+        for o in confirmed_orders:
+            for item in o.items:
+                pname = item.product_name
+                if pname not in product_stats:
+                    product_stats[pname] = {
+                        "name": pname,
+                        "category": item.category or "General",
+                        "quantity": 0,
+                        "revenue": 0.0,
+                    }
+                product_stats[pname]["quantity"] += item.quantity
+                product_stats[pname]["revenue"] += item.subtotal
+
+        top_products = sorted(product_stats.values(), key=lambda x: x["quantity"], reverse=True)
+        top_product_name = top_products[0]["name"] if top_products else "Sin ventas aún"
+
+        return {
+            "period": period,
+            "period_label": period_label,
+            "total_sales": total_sales,
+            "total_orders": total_orders_count,
+            "avg_ticket": avg_ticket,
+            "top_product_name": top_product_name,
+            "pending_count": len(pending_orders),
+            "cancelled_count": len(cancelled_orders),
+            "top_products": top_products,
+            "orders": all_period_orders,
+        }
+    finally:
+        db.close()
+

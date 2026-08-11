@@ -16,6 +16,7 @@ from app.database import (
     get_messages,
     get_order_by_id,
     get_pending_orders,
+    get_sales_analytics,
 )
 from app.whatsapp import send_order_cancellation, send_order_confirmation
 from app.printer import send_ticket_to_printer, send_test_ticket_to_printer
@@ -113,6 +114,23 @@ async def dashboard(request: Request):
             "pending": pending,
             "confirmed": confirmed,
             "all_orders": all_orders,
+            "now": datetime.now,
+        },
+    )
+
+
+@router.get("/dashboard/ventas", response_class=HTMLResponse)
+async def sales_report(request: Request, period: str = "today"):
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+
+    metrics = get_sales_analytics(period=period)
+    return templates.TemplateResponse(
+        request=request,
+        name="ventas.html",
+        context={
+            "metrics": metrics,
+            "period": period,
             "now": datetime.now,
         },
     )
