@@ -1,9 +1,13 @@
 from datetime import datetime
+import hashlib
+import hmac
+import os
 from pathlib import Path
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from app.config import settings
 from app.database import (
     cancel_order,
     confirm_order,
@@ -19,9 +23,86 @@ from app.printer import send_ticket_to_printer, send_test_ticket_to_printer
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
+COOKIE_NAME = "viky_session"
+
+
+def _generate_token(username: str) -> str:
+    secret = getattr(settings, "secret_key", "viky_secret_session_key_2026_auth")
+    sig = hmac.new(secret.encode(), username.lower().strip().encode(), hashlib.sha256).hexdigest()
+    return f"{username}:{sig}"
+
+
+def _is_authenticated(request: Request) -> bool:
+    token = request.cookies.get(COOKIE_NAME)
+    if not token or ":" not in token:
+        return False
+    username, sig = token.split(":", 1)
+    expected_token = _generate_token(username)
+    expected_sig = expected_token.split(":", 1)[1]
+    if not hmac.compare_digest(sig, expected_sig):
+        return False
+    allowed_user = getattr(settings, "dashboard_user", "Admin").lower().strip()
+    return username.lower().strip() == allowed_user
+
+
+# --- AUTH ROUTES ---
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    if _is_authenticated(request):
+        return RedirectResponse(url="/dashboard", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"error": None},
+    )
+
+
+@router.post("/login")
+async def login_submit(
+    request: Request,
+    response: Response,
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    expected_user = getattr(settings, "dashboard_user", "Admin").strip()
+    expected_pass = getattr(settings, "dashboard_password", "Amortiguador").strip()
+
+    if username.strip().lower() == expected_user.lower() and password.strip() == expected_pass:
+        token = _generate_token(expected_user)
+        redirect = RedirectResponse(url="/dashboard", status_code=303)
+        # 30 days session
+        redirect.set_cookie(
+            key=COOKIE_NAME,
+            value=token,
+            max_age=60 * 60 * 24 * 30,
+            httponly=True,
+            samesite="lax",
+        )
+        return redirect
+
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"error": "Usuario o contraseña incorrectos. Intenta de nuevo."},
+        status_code=401,
+    )
+
+
+@router.get("/logout")
+async def logout():
+    redirect = RedirectResponse(url="/login", status_code=303)
+    redirect.delete_cookie(key=COOKIE_NAME)
+    return redirect
+
+
+# --- DASHBOARD ROUTES (PROTECTED) ---
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+
     pending = get_pending_orders()
     confirmed = get_confirmed_orders()
     all_orders = get_all_orders()
@@ -40,7 +121,10 @@ async def dashboard(request: Request):
 
 
 @router.post("/dashboard/confirm/{order_id}")
-async def confirm_order_route(order_id: int, pickup_time: str = Form(...)):
+async def confirm_order_route(request: Request, order_id: int, pickup_time: str = Form(...)):
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+
     order = confirm_order(order_id, pickup_time)
     if order and order.customer:
         items_text = "\n".join(
@@ -84,7 +168,10 @@ async def confirm_order_route(order_id: int, pickup_time: str = Form(...)):
 
 
 @router.post("/dashboard/print/{order_id}")
-async def print_order_route(order_id: int):
+async def print_order_route(request: Request, order_id: int):
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+
     order = get_order_by_id(order_id)
     if order and order.customer:
         items_data = [
@@ -111,13 +198,19 @@ async def print_order_route(order_id: int):
 
 
 @router.post("/dashboard/test-printer")
-async def test_printer_route():
+async def test_printer_route(request: Request):
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+
     send_test_ticket_to_printer()
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
 @router.post("/dashboard/cancel/{order_id}")
-async def cancel_order_route(order_id: int):
+async def cancel_order_route(request: Request, order_id: int):
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+
     order = cancel_order(order_id)
     if order and order.customer:
         await send_order_cancellation(

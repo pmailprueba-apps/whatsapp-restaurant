@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///data/restaurant.db"
     owner_phone: str = "5214446506790@c.us"
     app_name: str = "Cenaduría Viky Hamburguesas y Tacos"
+    dashboard_user: str = "Admin"
+    dashboard_password: str = "Amortiguador"
+    secret_key: str = "viky_secret_session_key_2026_auth"
 
     def model_post_init(self, __context):
         self.whatsapp_token = self.whatsapp_token.strip()
