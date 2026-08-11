@@ -7,7 +7,6 @@ from fastapi.templating import Jinja2Templates
 
 from app.api_menu import router as api_menu_router
 from app.bot import init_sessions
-from app.qr_proxy import router as qr_proxy_router
 from app.config import settings
 from app.dashboard import router as dashboard_router
 from app.models import init_db, init_engine
@@ -21,7 +20,6 @@ app.include_router(webhook_router)
 app.include_router(simulator_router)
 app.include_router(dashboard_router)
 app.include_router(api_menu_router)
-app.include_router(qr_proxy_router)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.globals["now"] = datetime.now
