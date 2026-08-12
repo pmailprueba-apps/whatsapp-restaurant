@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartel de Pedidos QR - Cenaduría Viky</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .poster {
+            background: #ffffff;
+            width: 100%;
+            max-width: 480px;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            text-align: center;
+            border: 1px solid #cbd5e1;
+        }
+        .banner {
+            background: linear-gradient(135deg, #128C7E 0%, #075E54 100%);
+            color: #ffffff;
+            padding: 32px 24px;
+        }
+        .banner h1 {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+        .banner .subtitle {
+            color: #25D366;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .banner .callout {
+            font-size: 18px;
+            margin-top: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.15);
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+        }
+        .qr-section {
+            padding: 28px 24px;
+        }
+        .qr-frame {
+            background: #f8fafc;
+            border: 3px dashed #128C7E;
+            border-radius: 24px;
+            padding: 16px;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .qr-frame img {
+            width: 260px;
+            height: 260px;
+            display: block;
+            border-radius: 12px;
+        }
+        .instructions {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .phone-highlight {
+            font-size: 18px;
+            font-weight: 700;
+            color: #128C7E;
+            margin-top: 4px;
+        }
+        .info-card {
+            background: #f1f5f9;
+            border-radius: 18px;
+            margin: 0 24px 28px;
+            padding: 18px;
+            text-align: left;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+        .info-card strong { color: #0f172a; }
+        .closed-tag {
+            color: #dc2626;
+            font-weight: 800;
+            background: #fee2e2;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .footer-note {
+            font-size: 11px;
+            color: #94a3b8;
+            padding-bottom: 16px;
+        }
+        @media print {
+            body { background: transparent; padding: 0; }
+            .poster { box-shadow: none; max-width: 100%; border: none; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <div class="banner">
+            <h1>🍔 CENADURÍA VIKY</h1>
+            <div class="subtitle">Hamburguesas y Tacos</div>
+            <div class="callout">¡Pide más rápido por WhatsApp!</div>
+        </div>
+
+        <div class="qr-section">
+            <div class="qr-frame">
+                <img src="qr_whatsapp_viky_hd.png" alt="Código QR Pedidos Cenaduría Viky">
+            </div>
+            <div class="instructions">📱 Escanea con tu cámara</div>
+            <div class="phone-highlight">WhatsApp: (444) 650-6790</div>
+        </div>
+
+        <div class="info-card">
+            <div>🕐 <strong>Horario de Atención:</strong></div>
+            <div style="margin-top: 2px;">• Lunes a Domingo: <strong>7:30 PM a 12:00 AM (Medianoche)</strong></div>
+            <div>• <span class="closed-tag">Miércoles: CERRADO (Descanso)</span></div>
+            <div style="margin-top: 8px;">📍 <strong>Ubicación:</strong> Prol. Moctezuma 2140, Tercera Grande 2, S.L.P.</div>
+            <div>💵 <strong>Pago:</strong> Efectivo al recoger en local</div>
+        </div>
+
+        <div class="footer-note">
+            Cenaduría Viky · Sistema de Pedidos Automatizado
+        </div>
+    </div>
+</body>
+</html>

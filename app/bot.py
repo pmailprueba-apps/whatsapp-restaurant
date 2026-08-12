@@ -152,9 +152,11 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
         info = (
             "📍 *Dirección:* Prolongación Moctezuma 2140, Tercera Grande 2, 78143 San Luis Potosí, S.L.P.\n"
             "🗺️ *Google Maps:* https://maps.app.goo.gl/67C7AgADex3V8t8i9\n"
-            "🕐 *Horario:* Lunes a Domingo 11:00 AM - 11:00 PM\n"
-            "📱 *Teléfono:* +52 1 444 650 6790\n"
-            "💵 *Forma de pago:* Efectivo en local\n\n"
+            "🕐 *Horario de Atención:*\n"
+            "   • Lunes a Domingo: 7:30 PM a 12:00 AM (Medianoche)\n"
+            "   • *Miércoles:* CERRADO (Descanso)\n"
+            "📱 *WhatsApp de Pedidos:* +52 1 444 650 6790\n"
+            "💵 *Forma de pago:* Efectivo al recoger en local\n\n"
             "¿En qué más puedo ayudarte?\n\n"
             "1️⃣ Hacer Pedido\n2️⃣ Menú Principal"
         )
