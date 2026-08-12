@@ -181,10 +181,14 @@ def cancel_order(order_id: int) -> models.Order | None:
 
 def get_sales_analytics(period: str = "today") -> dict:
     from datetime import timedelta
+    try:
+        from zoneinfo import ZoneInfo
+        now_local = datetime.now(ZoneInfo("America/Mexico_City"))
+    except ImportError:
+        now_local = datetime.now()
+    
     db = _get_db()
     try:
-        now_local = datetime.now()
-        
         if period == "today":
             start_dt = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
             period_label = f"Hoy ({now_local.strftime('%d/%m/%Y')})"

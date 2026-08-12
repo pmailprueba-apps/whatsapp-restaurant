@@ -1,6 +1,10 @@
 import os
 import unicodedata
 from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    pass
 import paho.mqtt.publish as publish
 
 MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
@@ -68,7 +72,10 @@ def build_escpos_ticket(
     pickup_time: str = "",
     order_notes: str = "",
 ) -> bytes:
-    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    try:
+        now = datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %H:%M:%S")
+    except NameError:
+        now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     # Clean customer name and phone
     raw_name = clean_text(customer_name).strip()
@@ -153,7 +160,10 @@ def build_escpos_ticket(
 
 
 def build_test_ticket() -> bytes:
-    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    try:
+        now = datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %H:%M:%S")
+    except NameError:
+        now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     b = bytearray()
     b.extend(INIT)
     b.extend(b"\n")
