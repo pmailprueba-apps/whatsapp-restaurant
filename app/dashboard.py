@@ -20,6 +20,7 @@ from app.database import (
 )
 from app.whatsapp import send_order_cancellation, send_order_confirmation
 from app.printer import send_ticket_to_printer, send_test_ticket_to_printer
+from app.bot import reset_session
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -187,6 +188,9 @@ async def confirm_order_route(
             except Exception as pe:
                 print(f"[Dashboard] Error sending ticket to printer on confirm: {pe}")
 
+        # Reset the user's bot session so they can start a new order next time they message
+        reset_session(order.customer.phone)
+
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
@@ -240,4 +244,5 @@ async def cancel_order_route(request: Request, order_id: int):
             to=order.customer.phone,
             order_id=order.id,
         )
+        reset_session(order.customer.phone)
     return RedirectResponse(url="/dashboard", status_code=303)
