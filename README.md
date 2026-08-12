@@ -95,3 +95,26 @@ scp -r app/ root@204.168.235.137:/root/classic_bot/
 scp server.py root@204.168.235.137:/root/classic_bot/
 ssh root@204.168.235.137 "pm2 restart classic_bot"
 ```
+
+---
+
+## 🛡️ Respaldo en Caliente y Redundancia (QNAP #2)
+
+Para garantizar la continuidad total del restaurante ante cualquier eventualidad del VPS, se mantiene una copia de seguridad viva en **QNAP #2 (`NAS0284FE` — `192.168.100.6`)**.
+
+### 📍 Ubicación en el NAS:
+`/share/CACHEDEV1_DATA/Public/respaldo_restaurante_viky/`
+
+### 📦 Contenido del Respaldo:
+* `codigo/`: Código completo y funcional de la aplicación (FastAPI, menús, plantillas de diseño y módulo de ventas).
+* `data/restaurant.db`: Base de datos SQLite sincronizada con los pedidos y clientes reales.
+* `respaldo_viky_completo.tar.gz`: Archivo comprimido con la versión íntegra del sistema.
+* `scripts/sync_db_from_vps.sh`: Script para descargar y rotar automáticamente la base de datos del VPS.
+* `scripts/LEEME_RESTAURACION.txt`: Manual de contingencia para restaurar en un servidor nuevo en 3 minutos.
+
+### 🔄 Sincronización Rápida desde Mac:
+Puedes sincronizar la base de datos viva del VPS hacia el QNAP ejecutando:
+```bash
+./sync_backup_to_qnap.sh
+```
+
