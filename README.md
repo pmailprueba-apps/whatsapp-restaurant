@@ -1,87 +1,97 @@
-# WhatsApp Restaurant Bot
+# 🍔 Cenaduría Viky — Bot de WhatsApp + Dashboard POS + Impresora Térmica
 
-Sistema de pedidos para restaurante vía WhatsApp. Cliente pide por WhatsApp, dueño confirma desde dashboard con hora de recogida.
+Sistema integral de pedidos en tiempo real para **Cenaduría Viky (Hamburguesas y Tacos)**.  
+El cliente pide interactivamente por WhatsApp, la cocina recibe y gestiona los pedidos en un Dashboard seguro, y los tickets térmicos se imprimen automáticamente vía MQTT hacia un puente ESP32 conectado a una impresora POS-8360 (Kinwodon).
 
-## 🚀 Deploy rápido (Render + GitHub)
+---
 
-### 1. Crear repo en GitHub
+## 🌐 Servicios en Producción (VPS Hetzner `204.168.235.137`)
+
+| Componente | URL / Puerto | Descripción |
+|---|---|---|
+| **Dashboard de Cocina** | `http://204.168.235.137:8000/dashboard` | Gestión de pedidos pendientes, tiempos de entrega y reimpresión |
+| **Módulo de Ventas** | `http://204.168.235.137:8000/dashboard/ventas` | Reporte financiero con filtros (Hoy, Semana, Mes, Histórico) y Ranking de platillos |
+| **WhatsApp Bot (WAHA)** | `+52 1 444 650 6790` | Motor WhatsApp basado en WAHA Core 24/7 |
+| **Broker MQTT** | `204.168.235.137:1883` | Cola de impresión (`viky/printer/orders`) con QoS 1 |
+| **Proceso PM2** | `classic_bot` | Proceso gestionado vía `pm2 restart classic_bot` |
+
+---
+
+## 🔐 Seguridad y Acceso al Dashboard
+
+* **Pantalla de Login:** `http://204.168.235.137:8000/login`
+* **Usuario:** `Admin`
+* **Contraseña:** `Amortiguador`
+* **Sesión:** Cookie segura con firma criptográfica HMAC-SHA256 (`viky_session`, 30 días de persistencia).
+
+---
+
+## 🖨️ Arquitectura de Impresión Térmica
+
+```
+[Cliente WhatsApp] ──► [WAHA / FastAPI VPS] ──► [MQTT Broker: 1883]
+                                                        │
+                                                        ▼
+[Impresora Kinwodon POS-8360] ◄── [TCP 9100] ◄── [ESP32 Bridge (WiFi)]
+```
+
+### Características del Ticket ESC/POS:
+* **Margen de avance de corte (`FEED_AND_CUT`):** Avance de 8 líneas (`ESC d 5` + saltos) previo al corte con guillotina (`GS V \x00`), evitando mutilar el pie de página.
+* **Formato limpio:** Sanitización ASCII de caracteres especiales y formato telefónico `+52 (614) 107-3188`.
+* **Hora destacada:** Doble altura para hora de recogida acordada (`HORA RECOGIDA: 20:30 hrs`).
+* **Notas de cocina:** Desglose detallado de ingredientes especiales por platillo.
+
+---
+
+## 🎛️ Acciones de Pedido en Dashboard
+
+* **`✅ Confirmar & Imprimir` (Verde):** Guarda el tiempo de entrega, avisa al cliente por WhatsApp y manda el ticket a la impresora térmica.
+* **`✓ Solo Confirmar` (Azul):** Guarda el tiempo de entrega y avisa al cliente por WhatsApp sin mandar a imprimir.
+* **`🖨️ Reimprimir Ticket` (Celeste):** Imprime el ticket físico en cualquier momento.
+* **`❌ Cancelar` (Rojo):** Cancela el pedido y notifica al cliente.
+
+---
+
+## 📊 Módulo Administrativo de Ventas
+
+Accesible directamente desde la barra superior del Dashboard:
+* **Filtros rápidos:** `☀️ Ventas de Hoy`, `📅 Esta Semana`, `🗓️ Este Mes`, `📈 Histórico Total`.
+* **Tarjetas de KPI:** Ventas Cobradas ($), Pedidos Completados, Ticket Promedio ($) y Platillo Estrella.
+* **Ranking de Platillos:** Clasificación por unidades vendidas e ingresos totales.
+* **Detalle de Órdenes:** Tabla completa con desglose de ítems, hora y estados.
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+28-whatsapp-restaurant/
+├── app/
+│   ├── config.py             # Configuración, credenciales y variables de entorno
+│   ├── dashboard.py          # Rutas del Dashboard, Login, Ventas y acciones
+│   ├── database.py           # Consultas SQLite, CRUD de pedidos y métricas de ventas
+│   ├── models.py             # Modelos SQLAlchemy (Order, OrderItem, Customer)
+│   ├── menu.py               # Catálogo de platillos, precios y categorías
+│   ├── printer.py            # Generador ESC/POS y publicador MQTT
+│   ├── webhook.py            # Receptor de mensajes de WhatsApp
+│   ├── whatsapp_provider.py  # Integración WAHA / WhatsApp Web
+│   └── templates/
+│       ├── dashboard.html    # Vista principal de cocina y pedidos
+│       ├── login.html        # Pantalla de inicio de sesión
+│       └── ventas.html       # Panel de métricas administrativas
+├── server.py                 # Punto de entrada FastAPI unificado
+├── Procfile / render.yaml    # Configuración de respaldo Render
+└── requirements.txt          # Dependencias (FastAPI, SQLAlchemy, Paho-MQTT, etc.)
+```
+
+---
+
+## 🚀 Despliegue en Servidor
+
+Para sincronizar cambios locales al VPS Hetzner:
 
 ```bash
-cd /Users/macbook/Proyectos/28-whatsapp-restaurant
-git init
-git add .
-git commit -m "init: whatsapp restaurant bot"
-gh repo create whatsapp-restaurant --public --source=. --push
+scp -r app/ root@204.168.235.137:/root/classic_bot/
+scp server.py root@204.168.235.137:/root/classic_bot/
+ssh root@204.168.235.137 "pm2 restart classic_bot"
 ```
-
-### 2. Crear servicio en Render
-
-1. Ve a [dashboard.render.com](https://dashboard.render.com) → **New Web Service**
-2. Conecta tu GitHub repo
-3. Render detecta `render.yaml` automáticamente (Infrastructure as Code)
-4. Configura las variables de entorno manualmente:
-   - `WHATSAPP_TOKEN` → Token de Meta
-   - `WHATSAPP_PHONE_NUMBER_ID` → ID del número
-   - `WHATSAPP_VERIFY_TOKEN` → Token de verificación webhook
-   - `OWNER_PHONE` → Teléfono del dueño (ej: 5215512345678)
-5. Render crea automáticamente la BD PostgreSQL (`whatsapp-db`)
-6. Tu app queda en: `https://whatsapp-restaurant.onrender.com`
-
-### 3. Configurar webhook en Meta
-
-1. ngrok no es necesario en producción — Render ya da HTTPS
-2. En Meta Developers → WhatsApp → Webhook:
-   - **URL**: `https://whatsapp-restaurant.onrender.com/webhook/whatsapp`
-   - **Verify Token**: el mismo de `WHATSAPP_VERIFY_TOKEN`
-
-## 💻 Desarrollo local
-
-```bash
-source venv/bin/activate
-./start.sh
-# Abre http://localhost:8000/dashboard
-```
-
-Para webhook local (pruebas):
-
-```bash
-brew install ngrok
-ngrok http 8000
-# Copia la URL de ngrok y úsala en Meta Developers
-```
-
-## 📋 Flujo
-
-```
-WhatsApp                      Dashboard
-══════════                    ════════════
-Cliente: "Hola"              
-Bot: muestra menú            
-Cliente: elige productos     
-Cliente: confirma pedido     
-                  ──────►    Aparece pedido pendiente
-                              Dueño: confirma + asigna hora
-                  ◄──────    Cliente recibe confirmación
-Cliente: recoge y paga       ✓
-```
-
-## 🗂️ Estructura
-
-```
-app/
-├── main.py         # FastAPI
-├── config.py       # Config (.env)
-├── menu.py         # Catálogo de productos
-├── models.py       # SQLAlchemy modelos
-├── database.py     # CRUD pedidos
-├── bot.py          # Bot conversacional
-├── whatsapp.py     # Cliente WhatsApp API
-├── webhook.py      # Webhook WhatsApp
-├── dashboard.py    # Dashboard del dueño
-└── templates/
-    └── dashboard.html
-```
-
-## 🔧 Personalizar menú
-
-Edita `app/menu.py` — cambia productos, precios y categorías.
