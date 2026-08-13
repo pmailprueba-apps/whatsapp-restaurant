@@ -17,12 +17,19 @@ El cliente pide interactivamente por WhatsApp, la cocina recibe y gestiona los p
 
 ---
 
-## 🔐 Seguridad y Acceso al Dashboard
+## 🔐 Seguridad y Acceso
 
+### Dashboard del Restaurante
 * **Pantalla de Login:** `http://204.168.235.137:8000/login`
 * **Usuario:** `Admin`
 * **Contraseña:** `Amortiguador`
 * **Sesión:** Cookie segura con firma criptográfica HMAC-SHA256 (`viky_session`, 30 días de persistencia).
+
+### Hetzner Cloud Console (VPS)
+* **Panel:** `https://console.hetzner.com/`
+* **Usuario / Login:** `alexram80@me.com`
+* **Contraseña:** `Amortiguad@r1`
+* **IP VPS:** `204.168.235.137`
 
 ---
 
