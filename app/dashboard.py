@@ -25,6 +25,36 @@ from app.bot import reset_session
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
+def _to_slp_time(dt) -> str:
+    if not dt:
+        return ""
+    try:
+        from zoneinfo import ZoneInfo
+        from datetime import timezone
+        if dt.tzinfo is None:
+            dt_utc = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt_utc = dt
+        dt_slp = dt_utc.astimezone(ZoneInfo("America/Mexico_City"))
+        return dt_slp.strftime("%d/%m/%Y %I:%M %p")
+    except Exception:
+        return dt.strftime("%d/%m/%Y %H:%M") if hasattr(dt, "strftime") else str(dt)
+
+def _format_display_phone(phone_str: str) -> str:
+    if not phone_str:
+        return "Cliente"
+    clean = str(phone_str).replace("@c.us", "").replace("@s.whatsapp.net", "").replace("@lid", "").strip()
+    if clean.startswith("521") and len(clean) == 13:
+        return f"+52 ({clean[3:6]}) {clean[6:9]}-{clean[9:]}"
+    elif clean.startswith("52") and len(clean) == 12:
+        return f"+52 ({clean[2:5]}) {clean[5:8]}-{clean[8:]}"
+    elif len(clean) == 10:
+        return f"({clean[:3]}) {clean[3:6]}-{clean[6:]}"
+    return clean
+
+templates.env.filters["slp_time"] = _to_slp_time
+templates.env.filters["display_phone"] = _format_display_phone
+
 COOKIE_NAME = "viky_session"
 
 
@@ -48,6 +78,56 @@ def _is_authenticated(request: Request) -> bool:
 
 
 # --- AUTH ROUTES ---
+
+@router.get("/qr", response_class=HTMLResponse)
+async def qr_page(request: Request):
+    import httpx, base64
+    qr_img = ""
+    status = "desconocido"
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                "http://localhost:2785/api/sessions/0f97e6b0-4c49-47f7-a3fa-61ae42969add/qr",
+                headers={"X-API-Key": "dev-key-cambiar-en-prod"}
+            )
+            data = resp.json()
+            qr_img = data.get("qrCode") or data.get("qr") or ""
+            status = data.get("status") or "qr_ready"
+    except Exception as e:
+        status = f"Error: {e}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear QR WhatsApp - Cenaduría Viky</title>
+    <meta http-equiv="refresh" content="4">
+    <style>
+        body {{ background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }}
+        .card {{ background: #1e293b; padding: 36px 28px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); max-width: 420px; width: 100%; border: 1px solid rgba(255,255,255,0.1); }}
+        h1 {{ color: #25D366; font-size: 22px; margin-top: 0; margin-bottom: 8px; }}
+        p {{ color: #94a3b8; font-size: 14px; line-height: 1.5; margin-bottom: 20px; }}
+        .qr-box {{ background: white; padding: 16px; border-radius: 16px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }}
+        img {{ max-width: 280px; width: 100%; height: auto; display: block; }}
+        .badge {{ display: inline-block; background: rgba(37, 211, 102, 0.15); color: #25D366; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }}
+        .note {{ font-size: 12px; color: #64748b; margin-top: 20px; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">● Estado: {status}</div>
+        <h1>📱 Vincular WhatsApp</h1>
+        <p>Abre WhatsApp en el celular del restaurante (<b>+52 444 650 6790</b>)<br>Ve a <b>Dispositivos vinculados</b> &gt; <b>Vincular un dispositivo</b></p>
+        <div class="qr-box">
+            <img src="{qr_img}" alt="Código QR WhatsApp" />
+        </div>
+        <div class="note">Esta página se actualiza automáticamente cada 4 segundos.</div>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html)
+
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):

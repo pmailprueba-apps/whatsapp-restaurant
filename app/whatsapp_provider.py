@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+import asyncio
 import httpx
 
 from app.config import settings
@@ -537,7 +537,7 @@ def get_provider() -> BaseProvider:
         elif settings.whatsapp_provider == "bridge":
             _provider_instance = BridgeProvider(settings.bridge_url)
         elif settings.whatsapp_provider == "waha":
-            _provider_instance = WAHAProvider("http://localhost:2785", "6c3ad97b-babe-4436-b85c-3bbc195f9d7b", "dev-key-cambiar-en-prod")
+            _provider_instance = WAHAProvider("http://localhost:2785", "0f97e6b0-4c49-47f7-a3fa-61ae42969add", "dev-key-cambiar-en-prod")
         else:
             _provider_instance = DirectProvider()
     return _provider_instance
@@ -567,16 +567,30 @@ class WAHAProvider(BaseProvider):
                 return {"error": str(e)}
 
     def _format_chat_id(self, to: str) -> str:
-        if not to.endswith("@c.us") and not to.endswith("@g.us"):
-            return f"{to}@c.us"
-        return to
+        to_str = str(to or "").strip()
+        if to_str.endswith("@c.us") or to_str.endswith("@g.us") or to_str.endswith("@lid") or "@" in to_str:
+            return to_str
+        return f"{to_str}@c.us"
+
+    async def _prepare_chat_handshake(self, chat_id: str):
+        try:
+            # Mark chat as read and set typing indicator to establish Signal E2EE ratchet
+            await self._call("chats/read", {"chatId": chat_id})
+            await self._call("chats/typing", {"chatId": chat_id, "state": "typing"})
+            await asyncio.sleep(0.5)
+        except Exception:
+            pass
 
     async def send_text(self, to: str, text: str) -> dict:
-        return await self._call("messages/send-text", {"chatId": self._format_chat_id(to), "text": text})
+        chat_id = self._format_chat_id(to)
+        await self._prepare_chat_handshake(chat_id)
+        return await self._call("messages/send-text", {"chatId": chat_id, "text": text})
 
     async def send_image(self, to: str, image_url: str, caption: str = "") -> dict:
+        chat_id = self._format_chat_id(to)
+        await self._prepare_chat_handshake(chat_id)
         payload = {
-            "chatId": self._format_chat_id(to),
+            "chatId": chat_id,
             "url": image_url,
         }
         if caption:
@@ -586,11 +600,25 @@ class WAHAProvider(BaseProvider):
     async def send_order_confirmation(
         self, to: str, order_id: int, items_text: str, total: float, pickup_time: str
     ) -> dict:
+        clean_time = str(pickup_time or "").strip()
+        if clean_time.isdigit():
+            val = int(clean_time)
+            if 5 <= val <= 120:
+                time_display = f"En {val} minutos"
+            else:
+                time_display = f"A las {val:02d}:00 hrs"
+        elif "min" in clean_time.lower():
+            time_display = clean_time if clean_time.lower().startswith("en ") else f"En {clean_time}"
+        elif any(clean_time.lower().endswith(x) for x in ["hrs", "pm", "am", "hr"]):
+            time_display = f"A las {clean_time}"
+        else:
+            time_display = f"En {clean_time}" if not clean_time.lower().startswith("en ") else clean_time
+
         body = (
-            f"✅ *PEDIDO # {order_id} CONFIRMADO*\n\n"
+            f"✅ *PEDIDO #{order_id} CONFIRMADO*\n\n"
             f"{items_text}\n\n"
-            f"*Total: ${total:.0f}*\n\n"
-            f"🕐 *Recoge a las: {pickup_time}*\n\n"
+            f"💰 *Total: ${total:.0f}*\n\n"
+            f"⏱️ *Tiempo estimado de entrega: {time_display}*\n\n"
             f"📍 Pasa al local y paga en efectivo. ¡Te esperamos! 🎉"
         )
         return await self.send_text(to, body)

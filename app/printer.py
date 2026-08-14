@@ -26,8 +26,11 @@ BOLD_ON = ESC + b"E\x01"
 BOLD_OFF = ESC + b"E\x00"
 NORMAL_TYPE = ESC + b"!\x00"
 
-# Cut commands: Feed lines then cut paper completely
-FEED_AND_CUT = ESC + b"d\x05" + b"\n\n\n" + GS + b"V\x00" + b"\n"
+# Cut commands: Feed just enough to pass the cutter blade (~12-14mm), leaving ~1cm margin on next ticket
+FEED_AND_CUT = ESC + b"d\x03" + GS + b"V\x00"
+
+# Logo config
+ENABLE_PRINT_LOGO = os.getenv("ENABLE_PRINT_LOGO", "true").lower() in ("true", "1", "yes")
 
 
 def clean_text(text: str) -> str:
@@ -41,7 +44,7 @@ def clean_text(text: str) -> str:
 
 def clean_phone(phone_str: str) -> str:
     """Formats raw WhatsApp numbers (e.g. 5216141073188@c.us) into human-readable phone format."""
-    clean = str(phone_str or "").replace("@c.us", "").replace("@s.whatsapp.net", "").strip()
+    clean = str(phone_str or "").replace("@c.us", "").replace("@s.whatsapp.net", "").replace("@lid", "").strip()
     if clean.startswith("521") and len(clean) == 13:
         return f"+52 ({clean[3:6]}) {clean[6:9]}-{clean[9:]}"
     elif clean.startswith("52") and len(clean) == 12:
@@ -52,13 +55,21 @@ def clean_phone(phone_str: str) -> str:
 
 
 def format_pickup_time(time_str: str) -> str:
-    """Formats pickup time cleanly (e.g. '12' -> '12:00 hrs', '19:30' -> '19:30 hrs')."""
+    """Formats pickup time cleanly (e.g. '20 min' -> 'En 20 min', '19:30' -> '19:30 hrs')."""
     clean = clean_text(time_str).strip()
     if not clean:
         return ""
-    if clean.isdigit() and len(clean) <= 2:
-        return f"{int(clean):02d}:00 hrs"
-    if not clean.lower().endswith("hrs") and not clean.lower().endswith("pm") and not clean.lower().endswith("am"):
+    if clean.isdigit():
+        val = int(clean)
+        if 5 <= val <= 120:
+            return f"En {val} min"
+        elif len(clean) <= 2:
+            return f"{val:02d}:00 hrs"
+    if "min" in clean.lower():
+        if not clean.lower().startswith("en "):
+            return f"En {clean}"
+        return clean
+    if not clean.lower().endswith("hrs") and not clean.lower().endswith("pm") and not clean.lower().endswith("am") and "min" not in clean.lower():
         return f"{clean} hrs"
     return clean
 
@@ -71,6 +82,7 @@ def build_escpos_ticket(
     total: float,
     pickup_time: str = "",
     order_notes: str = "",
+    include_logo: bool = True,
 ) -> bytes:
     try:
         now = datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %H:%M:%S")
@@ -89,15 +101,24 @@ def build_escpos_ticket(
 
     b = bytearray()
     b.extend(INIT)
-    b.extend(b"\n")  # Top margin
+
+    # Optional Logo (Universal ESC * 24-dot mode)
+    if include_logo and ENABLE_PRINT_LOGO:
+        try:
+            from app.logo_viky import get_logo_bytes
+            logo_bytes = get_logo_bytes()
+            if logo_bytes:
+                b.extend(logo_bytes)
+        except Exception as e:
+            print(f"[Printer] Warning: Could not include logo: {e}")
 
     # Header
     b.extend(ALIGN_CENTER)
     b.extend(BOLD_ON + DOUBLE_HEIGHT)
-    b.extend(b"CENADURIA VIKY\n")
+    b.extend(b"CENADURIA VICKY\n")
     b.extend(BOLD_OFF + NORMAL_TYPE)
     b.extend(b"Hamburguesas y Tacos\n")
-    b.extend(b"Prol. Moctezuma 2140, 3ra Grande 2\n")
+    b.extend(b"Prolongacion Moctezuma 2140, Tercera Grande 2\n")
     b.extend(b"78143 San Luis Potosi, S.L.P.\n")
     b.extend(b"Tel: 444 650 6790\n")
     b.extend(b"--------------------------------\n")
@@ -115,7 +136,7 @@ def build_escpos_ticket(
     if formatted_time:
         b.extend(b"--------------------------------\n")
         b.extend(BOLD_ON + DOUBLE_HEIGHT)
-        b.extend(f"HORA RECOGIDA:\n{formatted_time}\n".encode("latin-1", "replace"))
+        b.extend(f"TIEMPO ENTREGA:\n{formatted_time}\n".encode("latin-1", "replace"))
         b.extend(BOLD_OFF + NORMAL_TYPE)
 
     if notes_clean:
@@ -159,17 +180,27 @@ def build_escpos_ticket(
     return bytes(b)
 
 
-def build_test_ticket() -> bytes:
+def build_test_ticket(include_logo: bool = True) -> bytes:
     try:
         now = datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %H:%M:%S")
     except NameError:
         now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     b = bytearray()
     b.extend(INIT)
-    b.extend(b"\n")
+
+    # Optional Logo (Universal ESC * 24-dot mode)
+    if include_logo and ENABLE_PRINT_LOGO:
+        try:
+            from app.logo_viky import get_logo_bytes
+            logo_bytes = get_logo_bytes()
+            if logo_bytes:
+                b.extend(logo_bytes)
+        except Exception as e:
+            print(f"[Printer] Warning: Could not include logo: {e}")
+
     b.extend(ALIGN_CENTER)
     b.extend(BOLD_ON + DOUBLE_HEIGHT)
-    b.extend(b"CENADURIA VIKY\n")
+    b.extend(b"CENADURIA VICKY\n")
     b.extend(BOLD_OFF + NORMAL_TYPE)
     b.extend(b"PRUEBA DE IMPRESION POS\n")
     b.extend(b"--------------------------------\n")
@@ -233,11 +264,11 @@ def send_ticket_to_printer(
         return False
 
 
-def send_test_ticket_to_printer(broker: str = None, port: int = None) -> bool:
+def send_test_ticket_to_printer(broker: str = None, port: int = None, include_logo: bool = True) -> bool:
     target_broker = broker or MQTT_BROKER
     target_port = port or MQTT_PORT
     try:
-        payload = build_test_ticket()
+        payload = build_test_ticket(include_logo=include_logo)
         publish.single(
             MQTT_TOPIC,
             payload=payload,

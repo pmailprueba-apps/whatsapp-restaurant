@@ -75,9 +75,79 @@ def reset_session(phone: str):
     delete_session(phone)
 
 
+last_closed_notified = {}
+
+
+def is_restaurant_open() -> tuple[bool, str]:
+    """
+    Horario de atención oficial:
+    - Jueves a Martes: 7:30 PM (19:30) a 2:00 AM (02:00) del día siguiente.
+    - Miércoles: Cerrado todo el día / descanso.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+        from datetime import datetime
+        now = datetime.now(ZoneInfo("America/Mexico_City"))
+    except Exception:
+        from datetime import datetime
+        now = datetime.now()
+
+    hour = now.hour
+    minute = now.minute
+    weekday = now.weekday()  # 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
+
+    # 1. Turno de noche (19:30 a 23:59:59)
+    if hour > 19 or (hour == 19 and minute >= 30):
+        if weekday == 2:  # Miércoles en la noche
+            return False, "Hoy miércoles descansamos."
+        return True, "Abierto"
+
+    # 2. Madrugada (00:00 a 01:59:59 - corresponde al turno de la noche anterior)
+    elif hour < 2:
+        if weekday == 3:  # Jueves en la madrugada (le corresponde el turno del miércoles noche que descansó)
+            return False, "Hoy miércoles descansamos."
+        return True, "Abierto"
+
+    # 3. Fuera de servicio durante el día (02:00 a 19:29:59)
+    else:
+        if weekday == 2:
+            return False, "Hoy miércoles descansamos. Te esperamos mañana jueves a partir de las 7:30 PM."
+        return False, "Abrimos hoy a las 7:30 PM."
+
+
+async def _send_closed_message(phone: str):
+    import time
+    now_ts = time.time()
+    last_sent = last_closed_notified.get(phone, 0)
+    # Cooldown de 5 minutos por número para no spamear
+    if now_ts - last_sent < 300:
+        return
+
+    last_closed_notified[phone] = now_ts
+    closed_msg = (
+        "🍽️ *Cenaduría Viky — Hamburguesas y Tacos*\n\n"
+        "¡Hola! 👋 En este momento nos encontramos fuera de horario de servicio.\n\n"
+        "⏰ *Nuestro horario de atención:*\n"
+        "• Jueves a Martes: *7:30 PM a 2:00 AM*\n"
+        "• Miércoles: *Cerrado (Descanso)*\n\n"
+        "📍 *Ubicación:* Prolongación Moctezuma 2140, Tercera Grande 2\n"
+        "🗺️ *Google Maps:* https://maps.app.goo.gl/67C7AgADex3V8t8i9\n\n"
+        "¡Te esperamos con gusto en nuestro horario de servicio para tomar tu pedido! 🍔🌮🎉"
+    )
+    await send_text(phone, closed_msg)
+
+
 async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
+    raw_text = text.strip().lower()
+    
+    # Comprobar horario de atención (permite comando de prueba /test_open)
+    is_open, _ = is_restaurant_open()
+    if not is_open and raw_text != "/test_open":
+        await _send_closed_message(phone)
+        return BotState.INIT, None
+
     session = get_session(phone)
-    text = text.strip().lower()
+    text = raw_text
     
     def auto(new_state, summary):
         session.state = new_state
@@ -130,7 +200,7 @@ async def _show_main_menu(phone: str) -> tuple[str, str | None]:
         "¡Bienvenido! 🎉 Elige una opción:\n\n"
         "1️⃣ *Ver Menú*\n"
         "2️⃣ *Hacer Pedido*\n"
-        "3️⃣ *Información*\n\n"
+        "3️⃣ *Información y Horario*\n\n"
         "Responde el *número* de tu opción:"
     )
     await send_text(phone, menu)
@@ -140,9 +210,8 @@ async def _show_main_menu(phone: str) -> tuple[str, str | None]:
 async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[str, str | None]:
     if text in ["ver_menu", "ver menú", "menu", "menú", "1"]:
         menu_text = format_menu_text()
-        menu_text += "\n\n¿Quieres hacer un pedido?"
+        menu_text += "\n\n━━━━━━━━━━━━━━━━━━━━\n¿Quieres hacer un pedido? Responde:\n1️⃣ Sí, hacer pedido\n2️⃣ Volver al menú"
         await send_text(phone, menu_text)
-        await send_text(phone, "¿Quieres hacer un pedido? Responde:\n1️⃣ Sí\n2️⃣ Volver al menú")
         return BotState.VIEWING_MENU, None
 
     if text in ["hacer_pedido", "hacer pedido", "pedido", "orden", "2"]:
@@ -153,7 +222,7 @@ async def _handle_main_menu(phone: str, text: str, session: Session) -> tuple[st
             "📍 *Dirección:* Prolongación Moctezuma 2140, Tercera Grande 2, 78143 San Luis Potosí, S.L.P.\n"
             "🗺️ *Google Maps:* https://maps.app.goo.gl/67C7AgADex3V8t8i9\n"
             "🕐 *Horario de Atención:*\n"
-            "   • Lunes a Domingo: 7:30 PM a 12:00 AM (Medianoche)\n"
+            "   • Jueves a Martes: *7:30 PM a 2:00 AM*\n"
             "   • *Miércoles:* CERRADO (Descanso)\n"
             "📱 *WhatsApp de Pedidos:* +52 1 444 650 6790\n"
             "💵 *Forma de pago:* Efectivo al recoger en local\n\n"

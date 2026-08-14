@@ -190,13 +190,13 @@ def get_sales_analytics(period: str = "today") -> dict:
     db = _get_db()
     try:
         if period == "today":
-            start_dt = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_dt = now_local.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
             period_label = f"Hoy ({now_local.strftime('%d/%m/%Y')})"
         elif period == "week":
-            start_dt = (now_local - timedelta(days=now_local.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            start_dt = (now_local - timedelta(days=now_local.weekday())).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
             period_label = f"Esta Semana (desde {start_dt.strftime('%d/%m/%Y')})"
         elif period == "month":
-            start_dt = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            start_dt = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
             period_label = f"Este Mes ({now_local.strftime('%B %Y')})"
         else:  # "all"
             period = "all"

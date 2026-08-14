@@ -271,10 +271,10 @@
                     <span class="badge badge-pending">Pendiente</span>
                 </div>
                 <div class="customer-info">
-                    👤 <strong>{{ order.customer.name or 'Cliente' }}</strong> · 📱 {{ order.customer.phone }}
+                    👤 <strong>{{ (order.customer.name if order.customer and order.customer.name and not order.customer.name.endswith('@lid') and not order.customer.name.endswith('@c.us') else 'Cliente') }}</strong> · 📱 {{ (order.customer.phone if order.customer else '')|display_phone }}
                 </div>
                 <div class="order-meta">
-                    🕐 Recibido: {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    🕐 Recibido: {{ order.created_at|slp_time }}
                 </div>
                 <ul class="order-items">
                     {% for item in order.items %}
@@ -293,23 +293,28 @@
                     <span>Total a cobrar:</span>
                     <span>${{ '%.0f'|format(order.total) }}</span>
                 </div>
-                <div class="order-actions">
-                    <form action="/dashboard/confirm/{{ order.id }}" method="post" class="pickup-form">
-                        <input type="text" name="pickup_time" placeholder="Hora ej: 19:30" required>
-                        <button type="submit" name="print_ticket" value="true" class="btn btn-confirm" title="Confirmar pedido, avisar al cliente por WhatsApp y enviar ticket a la impresora térmica">
-                            ✅ Confirmar & Imprimir
-                        </button>
-                        <button type="submit" name="print_ticket" value="false" class="btn btn-confirm-only" title="Confirmar pedido y avisar al cliente por WhatsApp sin imprimir ticket">
-                            ✓ Solo Confirmar
-                        </button>
+                    <form action="/dashboard/confirm/{{ order.id }}" method="post" class="pickup-form" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px; width:100%;">
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; width:100%;">
+                            <span style="font-size:12px; font-weight:700; color:#475569;">⏱️ Tiempo estimado:</span>
+                            <input type="text" id="pickup-input-{{ order.id }}" name="pickup_time" placeholder="Ej: 20 min" value="20 min" style="width:110px; font-weight:600; text-align:center;" required>
+                            <div style="display:inline-flex; gap:4px;">
+                                <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="document.getElementById('pickup-input-{{ order.id }}').value='15 min'">15m</button>
+                                <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="document.getElementById('pickup-input-{{ order.id }}').value='20 min'">20m</button>
+                                <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="document.getElementById('pickup-input-{{ order.id }}').value='30 min'">30m</button>
+                                <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="document.getElementById('pickup-input-{{ order.id }}').value='45 min'">45m</button>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; width:100%; margin-top:4px;">
+                            <button type="submit" name="print_ticket" value="true" class="btn btn-confirm" title="Confirmar pedido, avisar al cliente por WhatsApp y enviar ticket a la impresora térmica">
+                                ✅ Confirmar & Imprimir
+                            </button>
+                            <button type="submit" name="print_ticket" value="false" class="btn btn-confirm-only" title="Confirmar pedido y avisar al cliente por WhatsApp sin imprimir ticket">
+                                ✓ Solo Confirmar
+                            </button>
+                            <button type="submit" form="cancel-form-{{ order.id }}" class="btn btn-cancel">❌ Cancelar</button>
+                        </div>
                     </form>
-                    <form action="/dashboard/print/{{ order.id }}" method="post" style="display:inline;">
-                        <button type="submit" class="btn btn-print" title="Reimprimir ticket en la impresora">🖨️ Imprimir</button>
-                    </form>
-                    <form action="/dashboard/cancel/{{ order.id }}" method="post" style="display:inline;">
-                        <button type="submit" class="btn btn-cancel">❌ Cancelar</button>
-                    </form>
-                </div>
+                    <form id="cancel-form-{{ order.id }}" action="/dashboard/cancel/{{ order.id }}" method="post" style="display:none;"></form>
             </div>
             {% endfor %}
         {% else %}
@@ -330,7 +335,7 @@
                     <span class="badge badge-confirmed">Confirmado</span>
                 </div>
                 <div class="customer-info">
-                    👤 <strong>{{ order.customer.name or 'Cliente' }}</strong> · 📱 {{ order.customer.phone }}
+                    👤 <strong>{{ (order.customer.name if order.customer and order.customer.name and not order.customer.name.endswith('@lid') and not order.customer.name.endswith('@c.us') else 'Cliente') }}</strong> · 📱 {{ (order.customer.phone if order.customer else '')|display_phone }}
                 </div>
                 <ul class="order-items">
                     {% for item in order.items %}
@@ -351,7 +356,7 @@
                 </div>
                 {% if order.pickup_time %}
                 <div style="margin-top:10px; font-weight:700; color:var(--primary); font-size:14px; background:var(--success-bg); padding:8px 12px; border-radius:8px;">
-                    🕐 Hora de entrega acordada: {{ order.pickup_time }}
+                    ⏱️ Tiempo estimado de entrega: {{ order.pickup_time }}
                 </div>
                 {% endif %}
                 <div class="order-actions" style="margin-top:10px;">
