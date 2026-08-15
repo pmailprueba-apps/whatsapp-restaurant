@@ -339,6 +339,8 @@ async def _handle_product_selection(phone: str, text: str, session: Session) -> 
 
     try:
         idx = int(text) - 1
+        if idx == len(products):
+            return await _show_category_list(phone)
         if 0 <= idx < len(products):
             product = products[idx]
         else:
@@ -352,7 +354,7 @@ async def _handle_product_selection(phone: str, text: str, session: Session) -> 
             emoji = get_category_emoji(session.current_category)
             await send_text(
                 phone,
-                f"Número inválido. Responde el *número* (1-{len(products)}) del producto que deseas de {emoji} *{session.current_category}*:",
+                f"Número inválido. Responde el *número* (1-{len(products) + 1}) de tu opción de {emoji} *{session.current_category}*:",
             )
             return BotState.SELECTING_PRODUCT, None
 
