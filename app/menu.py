@@ -103,7 +103,9 @@ def format_category_text(category_name: str) -> str | None:
                     lines.append(f"   _{p.description}_")
             
             volver_idx = len(cat.products) + 1
+            cancel_idx = len(cat.products) + 2
             lines.append(f"\n{volver_idx}️⃣ 🔙 Volver a categorías")
+            lines.append(f"{cancel_idx}️⃣ ❌ Cancelar pedido")
             
             lines.append(f"\nResponde el *número* de tu opción:")
             return "\n".join(lines)
