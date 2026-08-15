@@ -20,6 +20,7 @@ class BotState:
     VIEWING_INFO = "VIEWING_INFO"
     BROWSING_CATEGORY = "BROWSING_CATEGORY"
     SELECTING_PRODUCT = "SELECTING_PRODUCT"
+    SELECTING_GUISO = "SELECTING_GUISO"
     SELECTING_QUANTITY = "SELECTING_QUANTITY"
     ADDING_NOTES = "ADDING_NOTES"
     CONFIRMING = "CONFIRMING"
@@ -175,6 +176,9 @@ async def handle_message(phone: str, text: str) -> tuple[str, str | None]:
 
     if session.state == BotState.SELECTING_PRODUCT:
         return auto(*(await _handle_product_selection(phone, text, session)))
+
+    if session.state == BotState.SELECTING_GUISO:
+        return auto(*(await _handle_guiso_selection(phone, text, session)))
 
     if session.state == BotState.SELECTING_QUANTITY:
         return auto(*(await _handle_quantity(phone, text, session)))
@@ -375,6 +379,44 @@ async def _handle_product_selection(phone: str, text: str, session: Session) -> 
     )
     return BotState.SELECTING_QUANTITY, None
 
+
+async def _handle_guiso_selection(phone: str, text: str, session: Session) -> tuple[str, str | None]:
+    if text in ["volver", "atras", "atrás"]:
+        cat_text = format_category_text(session.current_category)
+        if cat_text:
+            await send_text(phone, cat_text)
+            return BotState.SELECTING_PRODUCT, None
+        return await _show_category_list(phone)
+    if text in ["cancelar", "salir", "menu", "menú"]:
+        session.cart = []
+        await send_text(phone, "❌ *PEDIDO CANCELADO.* ¿Necesitas algo más?")
+        return await _show_main_menu(phone)
+
+    guisos = ["Bistec", "Barbacoa", "Chorizo", "Combinada"]
+    try:
+        idx = int(text) - 1
+        if 0 <= idx < len(guisos):
+            guiso = guisos[idx]
+        else:
+            raise ValueError
+    except (ValueError, TypeError):
+        await send_text(phone, "Número inválido. Responde un número del 1 al 4 para elegir tu guiso:")
+        return BotState.SELECTING_GUISO, None
+
+    if session.pending_item:
+        if guiso == "Combinada":
+            session.pending_item.product_name += " Combinada"
+        else:
+            session.pending_item.product_name += f" de {guiso}"
+        
+        price = session.pending_item.unit_price
+        detail_msg = f"🌮 *{session.pending_item.product_name}*\nPrecio: ${price}"
+        
+        await send_text(
+            phone,
+            f"{detail_msg}\n\n¿Cuántas quieres? (responde un número)",
+        )
+    return BotState.SELECTING_QUANTITY, None
 
 async def _handle_quantity(phone: str, text: str, session: Session) -> tuple[str, str | None]:
     if text in ["volver", "atras", "atrás"]:

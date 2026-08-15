@@ -54,11 +54,7 @@ MENU: list[Category] = [
     ]),
     Category("Gringas", "🌮", [
         Product("Sencilla", 28, "Gringas"),
-        Product("Doble de Bistec", 43, "Gringas"),
-        Product("Doble de Barbacoa", 43, "Gringas"),
-        Product("Doble de Chorizo", 43, "Gringas"),
-        Product("Doble Combinada", 43, "Gringas",
-            "Bistec con chorizo"),
+        Product("Doble", 43, "Gringas"),
     ]),
     Category("Tortas", "🥖", [
         Product("Torta de lomo", 40, "Tortas",
