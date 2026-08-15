@@ -380,7 +380,9 @@ async def _handle_product_selection(phone: str, text: str, session: Session) -> 
             "1️⃣ Bistec\n"
             "2️⃣ Barbacoa\n"
             "3️⃣ Chorizo\n"
-            "4️⃣ Combinada\n\n"
+            "4️⃣ Combinada\n"
+            "5️⃣ 🔙 Volver a opciones de Gringas\n"
+            "6️⃣ ❌ Cancelar pedido\n\n"
             "Responde el *número* de tu opción:"
         )
         await send_text(phone, guiso_text)
@@ -408,12 +410,22 @@ async def _handle_guiso_selection(phone: str, text: str, session: Session) -> tu
     guisos = ["Bistec", "Barbacoa", "Chorizo", "Combinada"]
     try:
         idx = int(text) - 1
+        if idx == len(guisos):
+            cat_text = format_category_text(session.current_category)
+            if cat_text:
+                await send_text(phone, cat_text)
+                return BotState.SELECTING_PRODUCT, None
+            return await _show_category_list(phone)
+        if idx == len(guisos) + 1:
+            session.cart = []
+            await send_text(phone, "❌ *PEDIDO CANCELADO.* ¿Necesitas algo más?")
+            return await _show_main_menu(phone)
         if 0 <= idx < len(guisos):
             guiso = guisos[idx]
         else:
             raise ValueError
     except (ValueError, TypeError):
-        await send_text(phone, "Número inválido. Responde un número del 1 al 4 para elegir tu guiso:")
+        await send_text(phone, "Número inválido. Responde un número del 1 al 6 para elegir tu guiso:")
         return BotState.SELECTING_GUISO, None
 
     if session.pending_item:
