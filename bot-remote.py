@@ -497,9 +497,7 @@ async def _handle_adding_more(phone: str, text: str, session: Session) -> tuple[
 async def _handle_post_order(phone: str, text: str, session: Session) -> tuple[str, str | None]:
     if text in ["nuevo_pedido", "nuevo pedido", "otro pedido", "1", "1️⃣"]:
         session.cart = []
-        session.state = BotState.MAIN_MENU
-        save_session(session)
-        return await _show_category_list(phone)
+        return await _show_main_menu(phone)
 
     await send_text(
         phone,
