@@ -312,7 +312,9 @@ async def _handle_category_selection(phone: str, text: str, session: Session) ->
             return BotState.SELECTING_PRODUCT, None
 
     for cat_name in cat_names:
-        if cat_name.lower() in text or text == cat_name.lower():
+        cat_lower = cat_name.lower()
+        cat_singular = cat_lower[:-1] if cat_lower.endswith('s') else cat_lower
+        if cat_lower in text or text == cat_lower or cat_singular in text:
             session.current_category = cat_name
             cat_text = format_category_text(cat_name)
             if cat_text:
