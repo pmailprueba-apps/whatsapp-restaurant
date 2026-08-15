@@ -48,7 +48,7 @@ MENU: list[Category] = [
     Category("Tacos", "🌮", [
         Product("Bistec", 15, "Tacos", ""),
         Product("Barbacoa", 16, "Tacos", ""),
-        Product("Chorizo", 13, "Tacos", ""),
+        Product("Chorizo", 15, "Tacos", ""),
         Product("Combinado", 15, "Tacos",
             "Bistec con chorizo"),
     ]),
