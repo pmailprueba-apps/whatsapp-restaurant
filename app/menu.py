@@ -26,8 +26,6 @@ MENU: list[Category] = [
             "Sencilla + tocino, queso amarillo, queso asadero, piña y aguacate"),
         Product("Mixta", 85, "Hamburguesas",
             "Sencilla + piña, champiñones, tocino y aguacate"),
-        Product("Imperial", 100, "Hamburguesas",
-            "Sencilla + doble carne, tocino, champiñones, piña, aguacate, doble jamón, quesos y salchichón"),
     ]),
     Category("Sincronizadas", "🥙", [
         Product("Sencillas", 60, "Sincronizadas",
