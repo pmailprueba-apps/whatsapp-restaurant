@@ -392,8 +392,8 @@
                             <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">#{{ order.id }}</div>
                         </td>
                         <td>
-                            <div style="font-weight: 700;">{{ order.customer.name or 'Cliente' }}</div>
-                            <div style="font-size: 13px; font-weight: 600; color: var(--primary-dark);">{{ order.customer.phone }}</div>
+                            <div style="font-weight: 700;">{{ (order.customer.name if order.customer.name and not order.customer.name.endswith('@lid') and not order.customer.name.endswith('@c.us') and not order.customer.name.endswith('@s.whatsapp.net') else 'Cliente') }}</div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--primary-dark);">📱 {{ order.customer.phone|display_phone }}</div>
                         </td>
                         <td>
                             <div style="font-size: 12px; color: #334155;">
