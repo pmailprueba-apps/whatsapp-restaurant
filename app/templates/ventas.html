@@ -398,8 +398,8 @@
                         <td>
                             <div style="font-size: 12px; color: #334155;">
                                 {% for item in order.items %}
-                                    <div>
-                                        <span style="font-weight: 600;">{{ item.quantity }}x {{ item.product_name }}</span>
+                                    <div style="margin-bottom: 4px;">
+                                        <span style="font-weight: 600;">{{ item.quantity }}x {% if item.category %}<span style="color: var(--text-muted); font-weight: normal;">{{ item.category }}</span> {% endif %}{{ item.product_name }}</span>
                                         {% if item.notes %}
                                         <br><span style="font-size: 11px; color: #d97706;">📝 {{ item.notes }}</span>
                                         {% endif %}
